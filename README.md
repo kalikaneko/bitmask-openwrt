@@ -8,6 +8,7 @@ being, but it should be easy to configure for other providers.
 The project is still not mature, so expect things to break. The following OpenWRT routers are supported:
 
 * GL-iNet 300M V2
+* GL-iNET AR750
 
 If you want to help testing, for now, you can fetch packages manually from [here](https://sindominio.net/kali/openwrt/mipsel_24kc/packages/).
 
