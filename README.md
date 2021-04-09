@@ -5,7 +5,7 @@ being, but it should be easy to configure for other providers.
 
 ## Supported devices
 
-The project is still not mature, so expect things to break. The following OpenWRT routers are supported:
+The project is still not mature, so expect things to break. The following OpenWRT routers are supported :
 
 * GL-iNet 300M V2
 * GL-iNET AR750
@@ -32,9 +32,9 @@ make build
 
 ## Cross-compile
 
-You will need a recent nim version (use `choosenim`) and upx in your host.
+You will need a recent 👑 [nim](https://nim-lang.org/) version (use `choosenim`) and [upx](https://upx.github.io/) in your host.
 
-Then, from the top of your OpenWRT SDK, do:
+Then, from the top of your [OpenWRT SDK](https://github.com/openwrt/openwrt/), do:
 
 ```
 git clone https://0xacab.org/kali/bitmask-openwrt ../bitmask-openwrt
