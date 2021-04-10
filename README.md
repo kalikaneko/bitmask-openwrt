@@ -1,7 +1,6 @@
 # Bitmask for OpenWRT
 
-A LEAP-VPN client for embedded devices. Works with RiseupVPN, for the time
-being, but it should be easy to configure for other providers.
+A LEAP-VPN client for embedded devices. Works with RiseupVPN and CalyxVPN for the time being.
 
 ![router](https://0xacab.org/kali/bitmask-openwrt/-/raw/master/docs/router.png)
 
@@ -75,30 +74,29 @@ make build
 
 ## Cross-compile packages
 
-This is the quick-n-dirty way of generating the packages.
-You will need a recent 👑 [nim](https://nim-lang.org/) version (use `choosenim`) and [upx](https://upx.github.io/) in your host.
+The quick-n-dirty way:
 
-Then, from the top of your [OpenWRT SDK](https://github.com/openwrt/openwrt/), do:
+Get a recent 👑 [nim](https://nim-lang.org/) version (use `choosenim`) and [upx](https://upx.github.io/) in your host.
+
+From the top of your [OpenWRT SDK](https://github.com/openwrt/openwrt/), do:
 
 ```
 git clone https://0xacab.org/kali/bitmask-openwrt ../bitmask-openwrt
 ln -s ../bitmask-openwrt package/bitmask-vpn
-make package/bitmask-vpn/{clean,compile} -j=1 -V=s
+make package/bitmask-vpn/{clean,compile}
 ```
 
-Package should be ready under `bin/packages`:
+Package will be ready under `bin/packages`:
 
 ```
 bin/packages/mipsel_24kc/base/bitmask-vpn_0.0.1-1_mipsel_24kc.ipk
 ```
 
-Do note, though, that you need to compile a version of openvpn with management
-support enabled. `make menuconfig` is your friend. I want to provide custom
-feeds to make installation more user-friendly in the future.
+See `docs/build-packages.md` for the whole story.
 
 ## Run
 
-Until the packagte is a bit more polished (daemon, logs etc), you can run things manually from a tmux screen or similar:
+Until the package is a bit more polished (daemon, logs etc), you can run things manually from a tmux screen or similar:
 
 ```
 # on one window

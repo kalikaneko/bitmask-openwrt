@@ -41,8 +41,15 @@ ifeq ($(ARCH),mipsel)
   NIM_TARGET:=mipsel
 endif
 
+# Package preparation; create the build directory and copy the source code.
+# The last command is necessary to ensure our preparation instructions remain compatible with the patching system.
+define Build/Prepare
+	mkdir -p $(PKG_BUILD_DIR)
+	cp -r providers $(PKG_BUILD_DIR)
+	$(Build/Patch)
+endef
+
 define Build/Compile
-	echo "NIM_TARGET: $(NIM_TARGET)"
 	nim -d:release --threads:on --opt=size --cpu:$(NIM_TARGET) --os:linux --outDir:$(PKG_BUILD_DIR) c src/bitmask.nim
 endef
 # FIXME upx seems to mess mips binary, investigate
@@ -51,6 +58,8 @@ endef
 define Package/bitmask-vpn/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bitmaskd $(1)/usr/bin/
+	$(INSTALL_DIR) $(1)/etc/bitmask
+	$(CP) -r $(PKG_BUILD_DIR)/providers $(1)/etc/bitmask
 endef
 
 

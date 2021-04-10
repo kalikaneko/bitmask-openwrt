@@ -1,17 +1,21 @@
+import config
 import json
 import strutils
 import os
 import osproc
+import posix
 import streams
 
 const
-  curl = "curl --cacert /etc/bitmask/riseup.crt --silent "
   curlLE = "curl --silent "
-  crt = "/etc/bitmask/riseup.crt"
-  crtUrl = "https://black.riseup.net/ca.crt"
+  providers = "/etc/bitmask/providers"
+  curl = "curl --cacert " & providers & "/$#/ca.crt --silent "
+  crt = providers & "/$#/ca.crt"
 
 template getURL*(url: string): string =
-  execProcess(curl & $url)
+  let provider = getProvider()
+  let cmd = curl % [provider,]
+  execProcess(cmd & $url)
 
 proc dump*(pth: string, data: string) =
   let s = newFileStream(pth, fmWrite)
@@ -23,7 +27,16 @@ proc getJson*(url: string): JSonNode =
   str = str.replace("\n")
   parseJson(str)
 
+proc isRoot(): bool =
+  return int(getuid()) == 0
+
 proc getCACrt*() =
-  if not fileExists(crt):
-    echo "DEBUG writing ca.crt to " & $crt
-    dump(crt, execProcess(curlLE & $crtUrl))
+  let provider = getProvider()
+  let crtPath = crt % [provider,]
+  if not fileExists(crtPath):
+    if isRoot():
+      createDir(providers & "/$#" % [provider,])
+    let caUrl = getCaUrl()
+    echo "DEBUG geting " & caUrl
+    echo "DEBUG writing ca.crt to " & $crtPath
+    dump(crtPath, execProcess(curlLE & $caUrl))

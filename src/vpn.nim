@@ -13,11 +13,10 @@ import system
 import threadproxy
 
 import checks
-import curl
 import config
+import curl
 import management
 import metrics
-import provider
 
 syslog.openlog("bitmask", logUser)
 
@@ -41,6 +40,10 @@ type
     ip_address*: string
     host: string
     capabilities*: Capabilities
+
+  GatewayV1 * = object
+    ip_address*: string
+    host: string
 
   Location* = object
     country_code: string
@@ -99,12 +102,15 @@ proc strToEIP(stateStr: string): EIPState =
 
 proc getCommandFor*(gw: Gateway): string =
     let remote = gw.ip_address
-    let port = gw.capabilities.transport[0].ports[0]
-    #if wantsVerbose():
-    #  echo "Gateway: ", gw.location, " (", remote, ")"
-    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} udp --remote {remote} {port} tcp --verb 3 --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.0 --tls-cipher DHE-RSA-AES128-SHA --ca /etc/bitmask/riseup.crt --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --persist-key --persist-local-ip --management 127.0.0.1 6061 --redirect-gateway"
+    var port = ""
+    try:
+      port = gw.capabilities.transport[0].ports[0]
+    except:
+      port = "443"
 
-#--route {remote} 255.255.255.255 net_gateway"
+    let ca = getCaPath()
+    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} udp --remote {remote} {port} tcp --verb 3 --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.0 --tls-cipher DHE-RSA-AES128-SHA --ca $# --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --persist-key --persist-local-ip --management 127.0.0.1 6061 --redirect-gateway" % [ca,]
+
 # --log /tmp/bitmask-openvpn.log"
 # this only for testing on debian
 # --script-security 2 --up /etc/openvpn/update-resolv-conf --down /etc/openvpn/update-resolv-conf --down-pre 
@@ -112,13 +118,25 @@ proc getCommandFor*(gw: Gateway): string =
 proc getGateways(url: string): seq[Gateway] =
   let j = getJson(url)
   var eipGateways = newSeq[Gateway](0)
-  let gws = j["gateways"]
-  for gw in gws:
-    eipGateways.add(to(gw, Gateway))
+  let gws = j{"gateways"}
+  try:
+    for gw in gws:
+      eipGateways.add(to(gw, Gateway))
+  except:
+    try:
+      for gw in gws:
+        # calyx gives no locations
+        let g = to(gw, GatewayV1)
+        let gw2 = Gateway(host: g.host, ip_address: g.ip_address)
+        eipGateways.add(gw2)
+    except:
+      echo "WARN failed to parse gateway!!"
+      echo getCurrentExceptionMsg()
   result = eipGateways
 
 proc listLocations(): seq[string] =
    var l = newSeq[string]()
+   let eipUrl = getEipUrl()
    let gws = getGateways(eipUrl)
    for g in gws:
      if g.location notin l:
@@ -130,17 +148,30 @@ proc getAutoGateway(): Gateway {.gcsafe.} =
   if gateway.host != "":
     return gateway
 
-  let
-    j    = getJson(geoUrl)
-    city = j["city"].getStr()
-    cc   = j["cc"].getStr()
-  echo "INFO Your city appears to be $# ($#)" % [city, cc]
-  let best = j["gateways"][0].getStr()
-  let gws = getGateways(eipUrl)
-  for g in gws:
-    if g.host == best:
-      echo "INFO Got automatic gateway: " & $g.host & " ($#)" % [$g.location,]
-      return g
+  let eipUrl = getEipUrl()
+  let menshenUrl = getMenshenUrl()
+  if menshenUrl != "":
+    let
+      j    = getJson(menshenUrl)
+      city = j["city"].getStr()
+      cc   = j["cc"].getStr()
+
+    echo "INFO Your city appears to be $# ($#)" % [city, cc]
+    let best = j["gateways"][0].getStr()
+    let gws = getGateways(eipUrl)
+    for g in gws:
+      if g.host == best:
+        echo "INFO Got automatic gateway: " & $g.host & " ($#)" % [$g.location,]
+        return g
+  else:
+    echo "DEBUG No menshen, selecting first gateway"
+    let gws = getGateways(eipUrl)
+    if len(gws) == 0:
+      echo "FATAL received zero gatways"
+      quit()
+    let g = gws[0]
+    echo "INFO Selected gateway: " & g.host
+    return g
 
 proc manualGateway(gws: seq[Gateway], preferred: string): Gateway =
     for i in 0 .. len(gws)-1:
@@ -150,6 +181,7 @@ proc manualGateway(gws: seq[Gateway], preferred: string): Gateway =
     raise newException(ValueError, "Gateway choice not found")
 
 proc pickGatewayByLocation*(gw: string): vpn.Gateway {.gcsafe.} =
+  let eipUrl = getEipUrl()
   let gws = getGateways(eipUrl)
   return manualGateway(gws, gw)
 
@@ -187,7 +219,6 @@ proc doInitVPN() =
   getCACrt()
   gateway = getAutoGateway()
   # TODO we can fetch certs here already
-
   echo "DEBUG Init done"
 
 proc workerVPN*(proxy: ThreadProxy) {.thread.} =
@@ -240,7 +271,11 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
   proc doStart(fd: AsyncFD): bool {.gcsafe.} =
     # in case locations have changed in the meantime
     parseConfig()
+    let prov = getProvider()
+    echo "INFO provider:" & $prov
     # TODO check if we still have valid certs
+    let certUrl = getCertUrl()
+    let caUrl = getCaUrl()
     waitFor getCert(certUrl, caUrl)
     var gw: Gateway
     if isAuto():
