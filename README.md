@@ -11,6 +11,9 @@ The project is still not mature, so expect things to break. The following OpenWR
 * GL-iNet 300M V2
 * GL-iNET AR750
 
+See [here](https://0xacab.org/kali/bitmask-openwrt/-/tree/master/docs/devices)
+for more info and config files that you can use as a basis to build your own
+images.
 
 ## Install
 
