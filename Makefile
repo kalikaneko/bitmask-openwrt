@@ -42,9 +42,11 @@ ifeq ($(ARCH),mipsel)
 endif
 
 define Build/Compile
+	echo "NIM_TARGET: $(NIM_TARGET)"
 	nim -d:release --threads:on --opt=size --cpu:$(NIM_TARGET) --os:linux --outDir:$(PKG_BUILD_DIR) c src/bitmask.nim
-	upx $(PKG_BUILD_DIR)/bitmaskd
 endef
+# FIXME upx seems to mess mips binary, investigate
+#	upx $(PKG_BUILD_DIR)/bitmaskd
 
 define Package/bitmask-vpn/install
 	$(INSTALL_DIR) $(1)/usr/bin

@@ -83,7 +83,7 @@ Then, from the top of your [OpenWRT SDK](https://github.com/openwrt/openwrt/), d
 ```
 git clone https://0xacab.org/kali/bitmask-openwrt ../bitmask-openwrt
 ln -s ../bitmask-openwrt package/bitmask-vpn
-make package/bitmask-vpn/compile
+make package/bitmask-vpn/{clean,compile} -j=1 -V=s
 ```
 
 Package should be ready under `bin/packages`:

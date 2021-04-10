@@ -102,10 +102,12 @@ proc getCommandFor*(gw: Gateway): string =
     let port = gw.capabilities.transport[0].ports[0]
     #if wantsVerbose():
     #  echo "Gateway: ", gw.location, " (", remote, ")"
-    result = fmt"openvpn --client --remote-cert-tls server --tls-client --remote {remote} {port} tcp4 --verb 5 --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.0 --tls-cipher DHE-RSA-AES128-SHA --dev tun --ca /etc/bitmask/riseup.crt --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --persist-key --persist-local-ip --persist-remote-ip --management 127.0.0.1 6061 --route {remote} 255.255.255.255 net_gateway"
-    # --log /tmp/bitmask-openvpn.log"
-    # this only for testing on debian
-    # --script-security 2 --up /etc/openvpn/update-resolv-conf --down /etc/openvpn/update-resolv-conf --down-pre 
+    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} udp --remote {remote} {port} tcp --verb 3 --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.0 --tls-cipher DHE-RSA-AES128-SHA --ca /etc/bitmask/riseup.crt --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --persist-key --persist-local-ip --management 127.0.0.1 6061 --redirect-gateway"
+
+#--route {remote} 255.255.255.255 net_gateway"
+# --log /tmp/bitmask-openvpn.log"
+# this only for testing on debian
+# --script-security 2 --up /etc/openvpn/update-resolv-conf --down /etc/openvpn/update-resolv-conf --down-pre 
 
 proc getGateways(url: string): seq[Gateway] =
   let j = getJson(url)
