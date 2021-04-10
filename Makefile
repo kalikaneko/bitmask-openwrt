@@ -19,15 +19,12 @@ include $(INCLUDE_DIR)/package.mk
 define Package/bitmask-vpn
   SECTION:=net
   CATEGORY:=Network
-  TITLE:=BitmaskVPN
+  TITLE:=Client for RiseupVPN and other leap providers
   URL:=https://leap.se
   SUBMENU:=VPN
-  PROVIDES:=bitmask
-  DEPENDS:=+openvpn +curl
+  PROVIDES:=bitmaskd
+  DEPENDS:=+openvpn-mbedtls +curl +kmod-tun
 endef
-
-# NOPE +libopenssl 
-# TODO +iptables
 
 define Package/bitmask-vpn/description
   Configure OpenVPN to use RiseupVPN or other compatible LEAP-VPN providers.
@@ -37,10 +34,15 @@ define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 endef
 
-# FIXME get architecture from env var
+ifeq ($(ARCH),mips)
+  NIM_TARGET:=mips
+endif
+ifeq ($(ARCH),mipsel)
+  NIM_TARGET:=mipsel
+endif
 
 define Build/Compile
-	nim -d:release --threads:on --opt=size --cpu:mipsel --os:linux --outDir:$(PKG_BUILD_DIR) c src/bitmask.nim
+	nim -d:release --threads:on --opt=size --cpu:$(NIM_TARGET) --os:linux --outDir:$(PKG_BUILD_DIR) c src/bitmask.nim
 	upx $(PKG_BUILD_DIR)/bitmaskd
 endef
 

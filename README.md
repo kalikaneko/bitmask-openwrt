@@ -12,9 +12,50 @@ The project is still not mature, so expect things to break. The following OpenWR
 * GL-iNet 300M V2
 * GL-iNET AR750
 
-If you want to help testing, for now, you can fetch packages manually from [here](https://sindominio.net/kali/openwrt/mipsel_24kc/packages/).
 
-## Dependencies
+## Install
+
+If you want to help testing, please follow these steps from your router:
+
+1. Add kali's feed to your `/etc/opkg/customfeeds.conf`
+
+```
+# for AR750
+src leap https://sindominio.net/kali/openwrt/packages/mips_24kc/leap
+```
+
+2. Download and verify developer signing key.
+
+```
+wget https://sindominio.net/kali/openwrt/key-build.pub
+```
+
+If you feel like using gpg to verify that signature, you can use:
+
+```
+wget https://sindominio.net/kali/openwrt/key-build.pub.asc
+gpg --verify key-build.pub.asc
+```
+
+Now add the key to opkg's store:
+
+```
+opkg-key add key-build.pub
+```
+
+3. Update your feeds and install
+
+(Note: you need TLS support enabled in wget at the moment, I have to move the feed somewhere that doesn't redirect to https).
+
+```
+opkg update
+opkg install bitmask-vpn
+```
+
+If you had a previous version of openvpn-mbedtls you might want to uninstall it and get the one in kali's feed instead, since this one is compiled with management support.
+
+
+## Development
 
 ```
 # runtime
@@ -32,8 +73,9 @@ make deps
 make build
 ```
 
-## Cross-compile
+## Cross-compile packages
 
+This is the quick-n-dirty way of generating the packages.
 You will need a recent 👑 [nim](https://nim-lang.org/) version (use `choosenim`) and [upx](https://upx.github.io/) in your host.
 
 Then, from the top of your [OpenWRT SDK](https://github.com/openwrt/openwrt/), do:
