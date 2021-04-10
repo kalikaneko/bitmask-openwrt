@@ -19,14 +19,14 @@ images.
 
 If you want to help testing, please follow these steps from your router:
 
-1. Add kali's feed to your `/etc/opkg/customfeeds.conf`
+### 1. Add kali's feed to your `/etc/opkg/customfeeds.conf`
 
 ```
 # for AR750
 src leap https://sindominio.net/kali/openwrt/packages/mips_24kc/leap
 ```
 
-2. Download and verify developer signing key.
+### 2. Download and verify the developer key.
 
 ```
 wget https://sindominio.net/kali/openwrt/key-build.pub
@@ -45,7 +45,7 @@ Now add the key to opkg's store:
 opkg-key add key-build.pub
 ```
 
-3. Update your feeds and install
+### 3. Update your feeds and install
 
 (Note: you need TLS support enabled in wget at the moment, I have to move the feed somewhere that doesn't redirect to https).
 

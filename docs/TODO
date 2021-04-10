@@ -19,3 +19,4 @@
 [ ] init check for running openvpn
 [ ] add debug flag to config
 [ ] bitmaskctl
+[ ] uci set/get for storing status of vpn
