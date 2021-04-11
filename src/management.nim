@@ -46,6 +46,12 @@ proc readLine(s: Socket): string =
     except:
       return
 
+proc dummyManager*(): Manager =
+  new result
+  var s = newSocket()
+  result.sock = s
+  result.terminated = false
+
 proc connectToManagement*(ipaddr="127.0.0.1", port=6061.Port): Manager =
   new result
   var s = newSocket()

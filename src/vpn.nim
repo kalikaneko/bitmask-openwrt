@@ -81,9 +81,10 @@ var gateway {.threadvar.}: Gateway
 proc releaseVpnLock(): void =
   if not openvpnProc.running:
     openvpnProc.close()
-  vpnLock.release()
-  syslog.debug("lock released")
-  return
+  try:
+    vpnLock.release()
+  except:
+    discard
 
 proc strToVPN(stateStr: string): OpenVPNState =
   result = parseEnum[OpenVpnState](stateStr)
@@ -299,8 +300,13 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
       timers = true
 
   proc doStop(fd: AsyncFD): bool {.gcsafe.} =
-    mng.doTerminate
-    releaseVpnLock()
+    #echo "type " & $typeof(mng) & $typeof(mng.terminated)
+    try:
+      if not mng.isTerminated():
+        mng.doTerminate
+        #releaseVpnLock()
+    except:
+      discard
 
   proxy.onData "start":
     if not canStartVpn():
@@ -326,6 +332,7 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
     inc count
     return %* {"count": $count}
 
+  mng = dummyManager()
   if not checkForManagement():
     echo "ERROR (fatal) you need to install an openvpn variant with management interface enabled"
     quit()

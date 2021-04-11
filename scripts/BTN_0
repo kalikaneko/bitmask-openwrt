@@ -9,8 +9,10 @@ fi
 toggle_on=$(/bin/grep -c 'sw1.*hi' /sys/kernel/debug/gpio)
 if [ "$toggle_on" = "1" ]; then
   echo "SWITCH ON" >> /tmp/switch.log
+  curl localhost:8080/start
 fi
 if [ "$toggle_on" = "0" ]; then
   echo "SWITCH OFF" >> /tmp/switch.log
+  curl localhost:8080/stop
 fi
 

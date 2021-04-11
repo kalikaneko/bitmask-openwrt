@@ -7,7 +7,7 @@ Roadmap for Bitmask-OpenWRT 🚀
 * [x] support for MT300/AR750
 * [x] simple rest api
 * [x] ability to read config files
-* [ ] minimal branding to use riseup/calyx
+* [x] minimal branding to use riseup/calyx
 
 0.1.0
 =====
