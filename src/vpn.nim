@@ -7,7 +7,6 @@ import posix
 import strutils
 import strformat
 import sugar
-import syslog
 import system
 
 import threadproxy
@@ -15,12 +14,11 @@ import threadproxy
 import checks
 import config
 import curl
+import logs
 import management
 import metrics
 
-syslog.openlog("bitmask", logUser)
-
-const pollPeriod = 1000
+const pollPeriod = 200
 
 type
   Transport = object
@@ -80,11 +78,14 @@ var gateway {.threadvar.}: Gateway
 
 proc releaseVpnLock(): void =
   if not openvpnProc.running:
-    openvpnProc.close()
+    try:
+     openvpnProc.close()
+    except:
+      echo "WARN error closing openvpn"
   try:
     vpnLock.release()
   except:
-    discard
+    debug("Cannot release lock")
 
 proc strToVPN(stateStr: string): OpenVPNState =
   result = parseEnum[OpenVpnState](stateStr)
@@ -110,11 +111,13 @@ proc getCommandFor*(gw: Gateway): string =
       port = "443"
 
     let ca = getCaPath()
-    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} udp --remote {remote} {port} tcp --verb 3 --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.0 --tls-cipher DHE-RSA-AES128-SHA --ca $# --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --persist-key --persist-local-ip --management 127.0.0.1 6061 --redirect-gateway" % [ca,]
-
-# --log /tmp/bitmask-openvpn.log"
-# this only for testing on debian
-# --script-security 2 --up /etc/openvpn/update-resolv-conf --down /etc/openvpn/update-resolv-conf --down-pre 
+    var debugLevel = "3"
+    let debug = getEnv("DEBUG")
+    if debug != "":
+      debugLevel = debug
+    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} tcp --verb $# --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.0 --tls-cipher DHE-RSA-AES128-SHA --ca $# --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --persist-tun --management 127.0.0.1 6061 --redirect-gateway --connect-retry 2" % [debugLevel, ca]
+    if debug != "":
+      result = result & " --log /tmp/bitmask-openvpn.log"
 
 proc getGateways(url: string): seq[Gateway] =
   let j = getJson(url)
@@ -131,7 +134,7 @@ proc getGateways(url: string): seq[Gateway] =
         let gw2 = Gateway(host: g.host, ip_address: g.ip_address)
         eipGateways.add(gw2)
     except:
-      echo "WARN failed to parse gateway!!"
+      warn("failed to parse gateway!!")
       echo getCurrentExceptionMsg()
   result = eipGateways
 
@@ -157,7 +160,7 @@ proc getAutoGateway(): Gateway {.gcsafe.} =
       city = j["city"].getStr()
       cc   = j["cc"].getStr()
 
-    echo "INFO Your city appears to be $# ($#)" % [city, cc]
+    info("Your city appears to be $# ($#)" % [city, cc])
     let best = j["gateways"][0].getStr()
     let gws = getGateways(eipUrl)
     for g in gws:
@@ -165,13 +168,13 @@ proc getAutoGateway(): Gateway {.gcsafe.} =
         echo "INFO Got automatic gateway: " & $g.host & " ($#)" % [$g.location,]
         return g
   else:
-    echo "DEBUG No menshen, selecting first gateway"
+    debug("No menshen, selecting first gateway")
     let gws = getGateways(eipUrl)
     if len(gws) == 0:
       echo "FATAL received zero gatways"
       quit()
     let g = gws[0]
-    echo "INFO Selected gateway: " & g.host
+    info("Selected gateway: " & g.host)
     return g
 
 proc manualGateway(gws: seq[Gateway], preferred: string): Gateway =
@@ -187,28 +190,28 @@ proc pickGatewayByLocation*(gw: string): vpn.Gateway {.gcsafe.} =
   return manualGateway(gws, gw)
 
 proc onDied(fd: AsyncFD): bool =
-  # XXX use a global and watch it from state loop?
-  syslog.debug("vpn died!")
+  debug("vpn died")
   releaseVpnLock()
   return true
 
 proc canStartVpn(): bool =
   if int(getuid()) != 0:
-    echo "ERROR need to be run as root"
+    error("need to be run as root")
     return false
   return true
 
 proc runVPNProc*(command: string): bool {.gcsafe.} =
   let canRun = vpnLock.tryAcquire()
   if not canRun:
-    echo("WARN: cannot start vpn: locked")
+    warn("cannot start vpn: locked")
     return false
-  echo "DEBUG " & $command
+  debug(command)
   try:
     let p = command.startProcess(options={poEvalCommand, poStdErrToStdOut})
     openvpnProc = p
-    syslog.debug("watching $#" % [$processID(p)])
-    addProcess(processID(p), onDied)
+    debug("openvpn pid: $#" % [$processID(p)])
+    #XXX trouble with selectors, debug
+    #addProcess(processID(p), onDied)
   except:
     echo "ERROR cannot launch openvpn"
 
@@ -220,7 +223,7 @@ proc doInitVPN() =
   getCACrt()
   gateway = getAutoGateway()
   # TODO we can fetch certs here already
-  echo "DEBUG Init done"
+  debug("Init done")
 
 proc workerVPN*(proxy: ThreadProxy) {.thread.} =
   var mng: Manager
@@ -228,9 +231,9 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
   var vpnSt: OpenVpnState
   var locations: seq[string]
   var metrics: MetricsRef
-  var isReady: bool
   var timers: bool
   var count = 0
+  var stopped: bool
 
   proc parseState(str: string) =
     let vpn = strToVPN(str)
@@ -238,19 +241,32 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
     if vpn != vpnSt:
       vpnSt = vpn
       eipSt = eip
+      echo "vpn: " & $vpnSt
 
   proc fetchStatus(fd: AsyncFD): bool {.gcsafe.} =
-    if not isReady:
+    if stopped:
+      if $vpnSt != "OFF":
+        echo "vpn: OFF"
+      # XXX should check that no vpn is running, routes etc
+      vpnSt = OpenVpnState.OFF
+      eipSt = EIPState.OFF
       return
     try:
-      parseState(mng.getState.state)
+      if not mng.started:
+        addTimer(int(pollPeriod*2), true, fetchStatus)
+        return
     except:
-      if mng.isTerminated():
-        vpnSt = OpenVpnState.OFF
-        eipSt = EIPState.OFF
-      else:
-        vpnSt = OpenVpnState.OFF
-        eipSt = EIPState.FAILED
+      warn("cannot add timer!!")
+    try:
+      parseState(mng.getState.state)
+      addTimer(int(pollPeriod), true, fetchStatus)
+    except:
+      error(getCurrentExceptionMsg())
+      if mng.terminated:
+        if $vpnSt != "OFF":
+          echo "vpn: OFF"
+      vpnSt = OpenVpnState.OFF
+      eipSt = EIPState.OFF
 
   proc collectMetrics(fd: AsyncFD): bool {.gcsafe.} =
     if eipSt != EIPState.ON:
@@ -262,18 +278,21 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
     while true:
       try:
         mng = connectToManagement()
-        isReady = true
         break
-        #echo "DEBUG " & $mng.getVersion()
       except:
+        echo getCurrentExceptionMsg()
         echo "ERROR cannot get manager!"
-      sleep(200)
+      sleep(500)
 
   proc doStart(fd: AsyncFD): bool {.gcsafe.} =
+  #proc doStart(){.gcsafe.} =
+    if $vpnSt != "OFF":
+      warn("WARN not starting, vpn status is " & $eipSt)
+      return
     # in case locations have changed in the meantime
+    stopped = false
     parseConfig()
     let prov = getProvider()
-    echo "INFO provider:" & $prov
     # TODO check if we still have valid certs
     let certUrl = getCertUrl()
     let caUrl = getCaUrl()
@@ -281,42 +300,47 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
     var gw: Gateway
     if isAuto():
       gw = getAutoGateway()
-      echo "INFO Using auto gateway: " & $gw.host
+      info("Using auto gateway: " & $gw.host)
     else:
       let loc = getLocation()
       gw = pickGatewayByLocation(loc)
-      echo "INFO Using preferred location: " & $loc
-      echo "INFO Selected gateway: " & $gw.host
+      info("Using preferred location: " & $loc)
+      info("Selected gateway: " & $gw.host)
 
     let cmd = getCommandFor(gw)
     let ok = runVPNProc(cmd)
 
-    addTimer(int(pollPeriod * 5), true, getManager)
-    # XXX need a way to cancel these timers...
-    if not timers:
-      metrics = MetricsRef()
-      addTimer(int(pollPeriod), false, fetchStatus)
-      addTimer(int(pollPeriod * 60), false, collectMetrics)
-      timers = true
+    addTimer(pollPeriod, true, getManager)
+    addTimer(pollPeriod, true, fetchStatus)
+
+    # TODO --- add metrics (in a separate thread?) ----------
+    #metrics = MetricsRef()
+    #addTimer(int(pollPeriod * 60), false, collectMetrics)
+    # -------------------------------------------------------
+
 
   proc doStop(fd: AsyncFD): bool {.gcsafe.} =
-    #echo "type " & $typeof(mng) & $typeof(mng.terminated)
+    stopped = true
+
+    # FIXME if connecting, should queue pending
+    if $eipSt != "ON":
+      echo "WARN not stopping, eip status is " & $eipSt
+      return
+
     try:
-      if not mng.isTerminated():
-        mng.doTerminate
-        #releaseVpnLock()
+      mng.doTerminate()
+      sleepAsync(32).addCallback(()=>releaseVpnLock())
     except:
-      discard
+      echo getCurrentExceptionMsg()
 
   proxy.onData "start":
     if not canStartVpn():
       return %* {"start": "error"}
-    addTimer(50, true, doStart)
-    # FIXME return error if already started
+    addTimer(16, true, doStart)
     return %* {"start": "ok"}
 
   proxy.onData "stop":
-    addTimer(50, true, doStop)
+    addTimer(16, true, doStop)
     return %* {"stop": "ok"}
 
   proxy.onData "status":
@@ -326,19 +350,14 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
   proxy.onData "gwlocations":
     return %* {"gwlocations": $locations}
 
-  # dummy command for debugging channels, can be removed
-  proxy.onData "count":
-    echo "count: " & $count
-    inc count
-    return %* {"count": $count}
-
   mng = dummyManager()
   if not checkForManagement():
-    echo "ERROR (fatal) you need to install an openvpn variant with management interface enabled"
+    error("ERROR (fatal) you need to install an openvpn variant with management interface enabled")
     quit()
   else:
-    echo "DEBUG OpenVPN has management interface, good"
+    debug("OpenVPN has management interface, good")
   checkForRoot()
   doInitVPN()
   locations = listLocations()
-  waitFor proxy.poll()
+  waitFor proxy.poll(interval=200)
+  debug("Exiting event loop")

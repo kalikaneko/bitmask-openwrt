@@ -1,12 +1,15 @@
-import syslog
+import os
 
-syslog.openlog("bitmask", logUser)
 
-proc debug*(msg: string)=
-        syslog.debug(msg)
+template debug*(msg: string)=
+  if getEnv("DEBUG") != "":
+    echo "DEBUG " & msg
 
-proc info*(msg: string)=
-        syslog.info(msg)
+template warn*(msg: string)=
+  echo "WARN " & msg
 
-proc error*(msg: string)=
-        syslog.error(msg)
+template info*(msg: string)=
+  echo "INFO " & msg
+
+template error*(msg: string)=
+  echo "ERROR " & msg

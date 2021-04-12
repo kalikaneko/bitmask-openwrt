@@ -7,6 +7,7 @@ let
   initialize = initEvent(registerCommandDispatcher)
   settings = newSettings(
     appName = "bitmask", address="localhost", debug=false)
+#??? numThreads=1)
 
 when isMainModule:
   var app = newApp(settings = settings, startup = @[initialize])

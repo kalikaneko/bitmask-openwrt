@@ -25,7 +25,9 @@ Roadmap for Bitmask-OpenWRT 🚀
 * [ ] web interface 
 * [ ] luci integration
 * [ ] traffic stats
+* [ ] autostart (checks status)
 
 0.3.0
 =====
 * [ ] firewall
+* [ ] use uci configuration

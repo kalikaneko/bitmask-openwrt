@@ -4,6 +4,7 @@ import sugar
 
 import threadproxy
 
+import logs
 import vpn
 
 
@@ -40,12 +41,14 @@ proc getCommandFromQueue(): CmdRef =
 
 iterator getResponseIterator(): CmdRef =
   var i = 0
-  while i <= 1000:
+  while i <= int(1E4):
     let d = respChan[].tryRecv()
     if d.dataAvailable:
       yield d.msg
     inc i
+    waitFor sleepAsync(32)
     yield CmdRef(id:0, cmd: "")
+  echo "out of getResponseIterator loop"
 
 template retryUntilSent(cmd:CmdRef, chan: Channel) =
   while true:
@@ -56,16 +59,17 @@ template retryUntilSent(cmd:CmdRef, chan: Channel) =
 proc sendResponse(cmd: CmdRef) =
   retryUntilSent(cmd, respChan[])
 
+
 proc getResponse*(cmdStr: string): Future[string] {.async.} =
   let cmd = createCommand(cmdStr)
   retryUntilSent(cmd, cmdChan[])
+  waitFor sleepAsync(100)
   for resp in getResponseIterator():
     if resp.id == cmd.id:
       return resp.resp
     if resp.id != 0:
       # not ours, return to the queue
       callSoon(() => sendResponse(resp))
-    await sleepAsync(100)
 
 const
   MAIN = "main"
@@ -75,12 +79,6 @@ const
   STOP* = "stop"
   STATUS* = "status"
   GWLOCATIONS* = "gwlocations"
-
-# proxy is in scope where this template is used below
-template processResponse(action: string) =
-  let data = waitFor proxy.ask(WORKER, action)
-  cmd.resp = data[action].getStr()
-  callSoon(() => sendResponse(cmd))
 
 var workerLock*: Lock
 initLock(workerLock)
@@ -96,22 +94,30 @@ proc registerCommandDispatcher*() =
     hasWorker = true
     echo "DEBUG Init vpn worker"
 
-    # signature for a Callback is this weird
+    proc processResponse(action: string, cmd: CmdRef) =
+      try:
+        let data = waitFor proxy.ask(WORKER, action)
+        cmd.resp = data[action].getStr()
+        callSoon(() => sendResponse(cmd))
+      except:
+         warn("BUG empty data when parsing command")
+  
+    # doParseCommands is a callback
     proc doParseCommands(fd: AsyncFD): bool {.gcsafe.} =
       let cmd = getCommandFromQueue()
       case cmd.cmd
+      of "":
+         return
       of COUNT:
-        processResponse(COUNT)
+        processResponse(COUNT, cmd)
       of START:
-        processResponse(START)
+        processResponse(START, cmd)
       of STOP:
-        processResponse(STOP)
+        processResponse(STOP, cmd)
       of STATUS:
-        processResponse(STATUS)
+        processResponse(STATUS, cmd)
       of GWLOCATIONS:
-        processResponse(GWLOCATIONS)
+        processResponse(GWLOCATIONS, cmd)
       else:
         return
-    # here we register an ad-hoc event loop that will be called by a timer
-    # right before starting the webserver event loop.
     addTimer(200, false, doParseCommands)

@@ -6,6 +6,8 @@ import net
 import strutils
 import os
 
+import logs
+
 export Port
 
 type
@@ -15,7 +17,8 @@ type
   Manager* = ref object of RootObj
     sock: Socket
     version: Version
-    terminated: bool
+    started*: bool
+    terminated*: bool
 
 proc stripLineEnd(s: var string) =
   ## copied from strutils in nim 0.20
@@ -58,15 +61,13 @@ proc connectToManagement*(ipaddr="127.0.0.1", port=6061.Port): Manager =
   result.sock = s
   result.terminated = false
   s.connect(ipaddr, port)
-  #if wantsVerbose():
-  #  if s.readLine.startswith(">INFO"):
-  #    echo "> connect OK"
+  result.started = true
 
-proc send*(s: Manager; data: string): bool =
-  return s.sock.trySend(data & "\n")
+proc send*(m: Manager; data: string): bool =
+  return m.sock.trySend(data & "\n")
 
-proc readLine*(s: Manager): string =
-  s.sock.readLine()
+proc readLine*(m: Manager): string =
+  m.sock.readLine()
 
 proc parseCmdResponse(s: Manager): string =
   result = ""
@@ -79,9 +80,9 @@ proc parseCmdResponse(s: Manager): string =
       break
     result.add v & "\n"
 
-proc getVersion*(s: Manager): string =
-  if s.send("version"):
-    return s.parseCmdResponse
+proc getVersion*(m: Manager): string =
+  if m.send("version"):
+    return m.parseCmdResponse
   else:
     return ""
 
@@ -96,21 +97,21 @@ proc parseState(str: string): tuple {.raises: [ValueError] .} =
                  rem:"",   rport: "",   laddr: "", lport: "", ip6: "")
     return state
   else:
+    debug("Wrong State: " & str)
+    debug("Length: " & $str.len)
     raise newException(ValueError, "cannot parse state")
 
-proc getState*(s: Manager): tuple =
-  if s.send("state"):
-    let r = s.parseCmdResponse
+proc getState*(m: Manager): tuple =
+  if m.send("state"):
+    let r = m.parseCmdResponse
     parseState(r)
   else:
     parseState("")
 
-proc doTerminate*(s: Manager) =
-  s.terminated = true
-  discard s.send("signal SIGTERM")
-
-proc isTerminated*(s: Manager): bool =
-  return s.terminated
+proc doTerminate*(m: Manager): void =
+  m.terminated = true
+  m.started = false
+  m.sock.send("signal SIGTERM\n")
 
 when isMainModule:
   let s = connectToManagement()
