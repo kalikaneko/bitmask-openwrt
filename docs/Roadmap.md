@@ -19,6 +19,8 @@ Roadmap for Bitmask-OpenWRT 🚀
 * [ ] bitmaskctl util
 * [ ] cli help
 * [ ] measure distance to gateways
+* [ ] add password to telnet interface
+* [ ] use unix domain socket for management
 
 0.2.0
 =====

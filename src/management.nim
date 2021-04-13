@@ -92,13 +92,12 @@ proc parseState(str: string): tuple {.raises: [ValueError] .} =
     var state = (ts:  s[0], state: s[1], verb:  s[2], ltun:  s[3],
                  rem: s[4], rport: s[5], laddr: s[6], lport: s[7], ip6: s[8])
     return state
-  elif s.len == 8:
+  elif (s.len == 8):
     var state = (ts: s[0], state: s[1], verb:  "", ltun:  "",
                  rem:"",   rport: "",   laddr: "", lport: "", ip6: "")
     return state
   else:
-    debug("Wrong State: " & str)
-    debug("Length: " & $str.len)
+    #debug("State length: " & $str.len)
     raise newException(ValueError, "cannot parse state")
 
 proc getState*(m: Manager): tuple =

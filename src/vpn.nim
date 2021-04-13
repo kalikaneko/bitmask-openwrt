@@ -18,7 +18,7 @@ import logs
 import management
 import metrics
 
-const pollPeriod = 200
+const pollPeriod = 500
 
 type
   Transport = object
@@ -115,7 +115,12 @@ proc getCommandFor*(gw: Gateway): string =
     let debug = getEnv("DEBUG")
     if debug != "":
       debugLevel = debug
-    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} tcp --verb $# --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.0 --tls-cipher DHE-RSA-AES128-SHA --ca $# --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --persist-tun --management 127.0.0.1 6061 --redirect-gateway --connect-retry 2" % [debugLevel, ca]
+    let udp = getEnv("UDP")
+    var transport = "tcp"
+    if udp == "1":
+      transport = "udp"
+    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} {transport} --verb {debugLevel} --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.2 --tls-cipher DHE-RSA-AES128-SHA --ca {ca} --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --management 127.0.0.1 6061 --redirect-gateway --connect-retry 2 --connect-retry-max 10" #% [debugLevel, ca]
+    #--persist-tun
     if debug != "":
       result = result & " --log /tmp/bitmask-openvpn.log"
 
@@ -258,15 +263,18 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
     except:
       warn("cannot add timer!!")
     try:
-      parseState(mng.getState.state)
-      addTimer(int(pollPeriod), true, fetchStatus)
+      let st = mng.getState.state
+      parseState(st)
+      addTimer(int(pollPeriod * 2), true, fetchStatus)
     except:
-      error(getCurrentExceptionMsg())
+      #error(getCurrentExceptionMsg())
       if mng.terminated:
         if $vpnSt != "OFF":
           echo "vpn: OFF"
-      vpnSt = OpenVpnState.OFF
-      eipSt = EIPState.OFF
+        vpnSt = OpenVpnState.OFF
+        eipSt = EIPState.OFF
+      else:
+        addTimer(int(pollPeriod * 2), true, fetchStatus)
 
   proc collectMetrics(fd: AsyncFD): bool {.gcsafe.} =
     if eipSt != EIPState.ON:
@@ -285,7 +293,6 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
       sleep(500)
 
   proc doStart(fd: AsyncFD): bool {.gcsafe.} =
-  #proc doStart(){.gcsafe.} =
     if $vpnSt != "OFF":
       warn("WARN not starting, vpn status is " & $eipSt)
       return
