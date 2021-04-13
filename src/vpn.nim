@@ -14,6 +14,7 @@ import threadproxy
 import checks
 import config
 import curl
+import hardware
 import logs
 import management
 import metrics
@@ -81,7 +82,7 @@ proc releaseVpnLock(): void =
     try:
      openvpnProc.close()
     except:
-      echo "WARN error closing openvpn"
+      warn("Could not close openvpn proc")
   try:
     vpnLock.release()
   except:
@@ -119,8 +120,7 @@ proc getCommandFor*(gw: Gateway): string =
     var transport = "tcp"
     if udp == "1":
       transport = "udp"
-    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} {transport} --verb {debugLevel} --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.2 --tls-cipher DHE-RSA-AES128-SHA --ca {ca} --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --management 127.0.0.1 6061 --redirect-gateway --connect-retry 2 --connect-retry-max 10" #% [debugLevel, ca]
-    #--persist-tun
+    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} {transport} --verb {debugLevel} --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.2 --tls-cipher DHE-RSA-AES128-SHA --ca {ca} --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --management 127.0.0.1 6061 --redirect-gateway --connect-retry 2 --connect-retry-max 10 --persist-tun"
     if debug != "":
       result = result & " --log /tmp/bitmask-openvpn.log"
 
@@ -363,7 +363,9 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
     quit()
   else:
     debug("OpenVPN has management interface, good")
+
   checkForRoot()
+  doInitBoard()
   doInitVPN()
   locations = listLocations()
   waitFor proxy.poll(interval=200)

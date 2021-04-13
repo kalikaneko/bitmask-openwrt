@@ -1,0 +1,57 @@
+{
+	"model": {
+		"id": "gl-ar750",
+		"name": "GL.iNet GL-AR750"
+	},
+	"led": {
+		"wlan2g": {
+			"name": "WLAN2G",
+			"sysfs": "gl-ar750:white:wlan2g",
+			"trigger": "phy1tpt"
+		},
+		"wlan5g": {
+			"name": "WLAN5G",
+			"sysfs": "gl-ar750:white:wlan5g",
+			"trigger": "phy0tpt"
+		}
+	},
+	"network": {
+		"lan": {
+			"ifname": "eth1.1",
+			"protocol": "static"
+		},
+		"wan": {
+			"ifname": "eth0",
+			"protocol": "dhcp"
+		}
+	},
+	"switch": {
+		"switch0": {
+			"enable": true,
+			"reset": true,
+			"ports": [
+				{
+					"num": 0,
+					"device": "eth1",
+					"need_tag": false,
+					"want_untag": false
+				},
+				{
+					"num": 1,
+					"role": "lan"
+				},
+				{
+					"num": 2,
+					"role": "lan"
+				}
+			],
+			"roles": [
+				{
+					"role": "lan",
+					"ports": "1 2 0t",
+					"device": "eth1.1"
+				}
+			]
+		}
+	}
+}
