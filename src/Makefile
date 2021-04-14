@@ -3,7 +3,7 @@ all: build
 build:
 	nim release.nims
 build-mips:
-	nim compile -d:release -d:usestd --threads:on --opt:size --cpu:mips --os:linux --out:"bitmaskd" bitmask.nim
+	nim compile -d:release -d:usestd --threads:on --opt:size --cpu:mips --os:linux --out:"bitmaskd" --stackTrace:on --lineTrace:on bitmask.nim
 build-mipsel:
 	nim compile -d:release --threads:on --opt:size --cpu:mipsel --os:linux --out:"bitmaskd" bitmask.nim
 pack:

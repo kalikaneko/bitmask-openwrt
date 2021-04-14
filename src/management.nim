@@ -111,6 +111,7 @@ proc doTerminate*(m: Manager): void =
   m.terminated = true
   m.started = false
   m.sock.send("signal SIGTERM\n")
+  m.sock.close()
 
 when isMainModule:
   let s = connectToManagement()

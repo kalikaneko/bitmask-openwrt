@@ -258,23 +258,18 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
       return
     try:
       if not mng.started:
-        addTimer(int(pollPeriod*2), true, fetchStatus)
         return
     except:
       warn("cannot add timer!!")
     try:
       let st = mng.getState.state
       parseState(st)
-      addTimer(int(pollPeriod * 2), true, fetchStatus)
     except:
-      #error(getCurrentExceptionMsg())
       if mng.terminated:
         if $vpnSt != "OFF":
           echo "vpn: OFF"
         vpnSt = OpenVpnState.OFF
         eipSt = EIPState.OFF
-      else:
-        addTimer(int(pollPeriod * 2), true, fetchStatus)
 
   proc collectMetrics(fd: AsyncFD): bool {.gcsafe.} =
     if eipSt != EIPState.ON:
@@ -318,7 +313,7 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
     let ok = runVPNProc(cmd)
 
     addTimer(pollPeriod, true, getManager)
-    addTimer(pollPeriod, true, fetchStatus)
+    addTimer(pollPeriod, false, fetchStatus)
 
     # TODO --- add metrics (in a separate thread?) ----------
     #metrics = MetricsRef()

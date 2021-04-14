@@ -16,7 +16,7 @@ proc doInitBoard*()=
   let j = parseFile("/etc/board.json")
   model = j{"model"}{"id"}.getStr()
 
-  info(model)
+  info("Board: " & $model)
 
 proc signalStatusOn*() =
   debug("leds: status on")
