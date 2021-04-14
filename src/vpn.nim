@@ -228,6 +228,7 @@ proc doInitVPN() =
   getCACrt()
   gateway = getAutoGateway()
   # TODO we can fetch certs here already
+  ledStatusOff()
   debug("Init done")
 
 proc workerVPN*(proxy: ThreadProxy) {.thread.} =
@@ -240,13 +241,17 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
   var count = 0
   var stopped: bool
 
-  proc parseState(str: string) =
+  proc parseEipState(str: string) =
     let vpn = strToVPN(str)
     let eip = strToEIP(str)
     if vpn != vpnSt:
       vpnSt = vpn
       eipSt = eip
       echo "vpn: " & $vpnSt
+    if eipSt == EIPState.ON:
+      ledStatusOn()
+    elif eipSt == EIPState.OFF:
+      ledStatusOff()
 
   proc fetchStatus(fd: AsyncFD): bool {.gcsafe.} =
     if stopped:
@@ -255,6 +260,7 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
       # XXX should check that no vpn is running, routes etc
       vpnSt = OpenVpnState.OFF
       eipSt = EIPState.OFF
+      ledStatusOff()
       return
     try:
       if not mng.started:
@@ -263,13 +269,14 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
       warn("cannot add timer!!")
     try:
       let st = mng.getState.state
-      parseState(st)
+      parseEipState(st)
     except:
       if mng.terminated:
         if $vpnSt != "OFF":
           echo "vpn: OFF"
         vpnSt = OpenVpnState.OFF
         eipSt = EIPState.OFF
+        ledStatusOff()
 
   proc collectMetrics(fd: AsyncFD): bool {.gcsafe.} =
     if eipSt != EIPState.ON:
