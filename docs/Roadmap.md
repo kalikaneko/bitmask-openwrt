@@ -12,24 +12,33 @@ Roadmap for Bitmask-OpenWRT 🚀
 0.1.0
 =====
 * [x] gateway selection
-* [ ] leds/buttons support
+* [x] leds/buttons support
+* [ ] autostart if switch on
 * [ ] image builder
 * [ ] ready-to-flash images
-* [ ] logging
-* [ ] bitmaskctl util
-* [ ] cli help
-* [ ] measure distance to gateways
-* [ ] add password to telnet interface
-* [ ] use unix domain socket for management
+* [ ] beryl support
 
 0.2.0
 =====
-* [ ] web interface 
-* [ ] luci integration
-* [ ] traffic stats
-* [ ] autostart (checks status)
+* [ ] proper daemon / logs
+* [ ] bitmaskctl util (symlinked to same binary)
+* [ ] cli help 
+* [ ] measure distance to gateways
+* [ ] add password to telnet interface
+* [ ] use unix domain socket for management
+* [ ] init check for running openvpn
+* [ ] tplink archer support
 
 0.3.0
 =====
-* [ ] firewall
-* [ ] use uci configuration
+* [ ] web interface 
+* [ ] luci integration
+* [ ] autostart (checks status)
+* [ ] parse gw protocols (udp/pt)
+* [ ] fix metrics for busyBox ping
+
+0.4.0
+=====
+* [ ] killswitch: firewall/routing (use /etc/config/firewall)
+* [ ] use uci config
+* [ ] traffic stats
