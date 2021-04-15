@@ -6,8 +6,6 @@ import net
 import strutils
 import os
 
-import logs
-
 export Port
 
 type

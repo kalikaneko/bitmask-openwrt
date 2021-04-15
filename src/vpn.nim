@@ -11,6 +11,7 @@ import system
 
 import threadproxy
 
+import banner
 import checks
 import config
 import curl
@@ -224,12 +225,12 @@ proc getCert(certUrl, caUrl: string) {.async.} =
   dump("/dev/shm/leap.crt", getURL(certUrl))
 
 proc doInitVPN() =
-  parseConfig()
   getCACrt()
   gateway = getAutoGateway()
   # TODO we can fetch certs here already
   ledStatusOff()
   debug("Init done")
+
 
 proc workerVPN*(proxy: ThreadProxy) {.thread.} =
   var mng: Manager
@@ -342,6 +343,11 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
     except:
       echo getCurrentExceptionMsg()
 
+  proc maybeStartVPN() =
+    if isButtonON():
+      debug("Switch is on, starting...")
+      addTimer(500, true, doStart)
+
   proxy.onData "start":
     if not canStartVpn():
       return %* {"start": "error"}
@@ -363,12 +369,13 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
   if not checkForManagement():
     error("ERROR (fatal) you need to install an openvpn variant with management interface enabled")
     quit()
-  else:
-    debug("OpenVPN has management interface, good")
 
+  parseConfig()
+  doBanner()
   checkForRoot()
   doInitBoard()
   doInitVPN()
   locations = listLocations()
+  maybeStartVPN()
   waitFor proxy.poll(interval=200)
   debug("Exiting event loop")

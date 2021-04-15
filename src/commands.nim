@@ -92,7 +92,6 @@ proc registerCommandDispatcher*() =
     asyncCheck proxy.poll()
     proxy.createThread(WORKER, workerVPN)
     hasWorker = true
-    echo "DEBUG Init vpn worker"
 
     proc processResponse(action: string, cmd: CmdRef) =
       try:

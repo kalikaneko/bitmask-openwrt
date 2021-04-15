@@ -13,3 +13,6 @@ template info*(msg: string)=
 
 template error*(msg: string)=
   echo "ERROR " & msg
+
+template bug*(msg: string)=
+  echo "BUG " & msg
