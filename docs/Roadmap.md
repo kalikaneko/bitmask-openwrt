@@ -13,7 +13,9 @@ Roadmap for Bitmask-OpenWRT 🚀
 =====
 * [x] gateway selection
 * [x] leds/buttons support
-* [ ] autostart if switch on
+* [x] autostart if switch on
+* [ ] copy BTN_0 script on first run
+* [ ] basic routing rules
 * [ ] image builder
 * [ ] ready-to-flash images
 * [ ] beryl support

@@ -10,11 +10,13 @@ import logs
 # For the time being it is enough with defining switch and vpn leds.
 
 const knownLEDS = {
-  "gl-ar750": "/sys/devices/platform/leds-gpio/leds/gl-ar750:white:wlan5g/brightness"
+  "gl-ar750": "/sys/devices/platform/leds-gpio/leds/gl-ar750:white:wlan5g/brightness",
+  "gl-mt300n-v2": "/sys/devices/platform/leds/leds/gl-mt300n-v2:green:wan/brightness"
 }
 
 const knownBUTTONS = {
-  "gl-ar750": "sw1"
+  "gl-ar750": "sw1",
+  "gl-mt300n-v2": "gpio-0"
 }
 
 const kernelGpio = "/sys/kernel/debug/gpio"

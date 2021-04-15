@@ -1,18 +1,20 @@
 #!/bin/sh
 # Switch LEAP VPN On/Off
-# /etc/rc.button/BTN_0
+# To be placed in /etc/rc.button/BTN_0
 
-has_ar750=$(/bin/grep -c 'gl-ar750' /etc/board.json)
-if [ "$has_ar750" = "3" ]; then
-  echo "AR750 detected" >> /tmp/switch.log
+is_ar750=$(/bin/grep -c 'gl-ar750' /etc/board.json)
+if [ "$is_ar750" = "3" ]; then
+  toggle_on=$(/bin/grep -c 'sw1.*hi' /sys/kernel/debug/gpio)
 fi
-toggle_on=$(/bin/grep -c 'sw1.*hi' /sys/kernel/debug/gpio)
+
+is_mt300n=$(/bin/grep -c 'gl-mt300n-v2' /etc/board.json)
+if [ "$is_mt300n" = "3" ]; then
+  toggle_on=$(/bin/grep -c 'gpio-0.*hi' /sys/kernel/debug/gpio)
+fi
+
 if [ "$toggle_on" = "1" ]; then
-  echo "SWITCH ON" >> /tmp/switch.log
   curl localhost:8080/start
 fi
 if [ "$toggle_on" = "0" ]; then
-  echo "SWITCH OFF" >> /tmp/switch.log
   curl localhost:8080/stop
 fi
-

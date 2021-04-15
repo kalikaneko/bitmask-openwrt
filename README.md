@@ -8,8 +8,8 @@ A LEAP-VPN client for embedded devices. Works with RiseupVPN and CalyxVPN for th
 
 The project is still not mature, so expect things to break. The following OpenWRT routers are supported :
 
-* GL-iNet 300M V2
-* GL-iNET AR750
+* GL-iNet MT-300M-V2
+* GL-iNet AR-750
 
 See [here](https://0xacab.org/kali/bitmask-openwrt/-/tree/master/docs/devices)
 for more info and config files that you can use as a basis to build your own
@@ -102,10 +102,18 @@ See `docs/build-packages.md` for the whole story.
 Until the package is a bit more polished (daemon, logs etc), you can run things manually from a tmux screen or similar:
 
 ```
-# on one window
 /usr/bin/bitmaskd
+```
 
-# on another, locally from the router
+The supported models can be controlled with the toggle button (copy
+`scripts/BTN_0` to `/etc/rc.button/BTN_0`). One of the leds will be toggled
+on/off to indicate the status of the tunnel.
+
+Alternatively, for the time being you can control the connection via the REST
+api:
+
+```
+# with curl, locally from the router
 curl localhost:8080/start
 curl localhost:8080/status
 curl localhost:8080/stop
