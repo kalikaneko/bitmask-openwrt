@@ -22,8 +22,14 @@ If you want to help testing, please follow these steps from your router:
 ### 1. Add kali's feed to your `/etc/opkg/customfeeds.conf`
 
 ```
-# for AR750
+# for ar-750 
 src leap https://sindominio.net/kali/openwrt/packages/mips_24kc/leap
+src leap-openwrt https://sindominio.net/kali/openwrt/packages/mips_24kc/packages/
+
+# for mt-300m-v2
+src leap https://sindominio.net/kali/openwrt/packages/mipsel_24kc/leap
+src leap-openwrt https://sindominio.net/kali/openwrt/packages/mipsel_24kc/packages/
+
 ```
 
 ### 2. Download and verify the developer key.

@@ -26,5 +26,6 @@ You can build a flashable image:
 
 ```
 wget .../AR750.config -O .config
-make -j$(($(nproc)+1))
+make download
+make -j$(($(nproc)+1)) world
 ```
