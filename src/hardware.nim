@@ -25,6 +25,7 @@ const kernelGpio = "/sys/kernel/debug/gpio"
 const systemButton = "/etc/rc.button/BTN_0"
 const buttonScript = "/etc/bitmask/scripts/BTN_0"
 const systemBoard = "/etc/board.json"
+const noleak = "/etc/bitmask/scripts/noleak.sh"
 
 var
   model {.threadvar.}: string
@@ -50,6 +51,9 @@ proc symlinkScripts() =
       discard tryRemoveFile(systemButton)
     createSymlink(buttonScript, systemButton)
     discard chmod(systemButton, 448)
+
+  # these we want to ensure are executable
+  discard chmod(noleak, 448)
 
 proc doInitBoard*() =
   let j = parseFile(systemBoard)

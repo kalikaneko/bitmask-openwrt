@@ -1,0 +1,6 @@
+#!/bin/sh
+# /etc/hotplug.d/iface/99-prevent-leak
+
+if [ "$ACTION" = ifup ] || [ "$ACTION" = ifdown ]; then
+	/etc/bitmask/scripts/noleak.sh
+fi
