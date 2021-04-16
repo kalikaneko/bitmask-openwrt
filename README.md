@@ -112,15 +112,14 @@ See `docs/build-packages.md` for the whole story.
 Until the package is a bit more polished (daemon, logs etc), you can run things manually from a tmux screen or similar:
 
 ```
-/usr/bin/bitmaskd
+DEBUG=2 /usr/bin/bitmaskd
 ```
 
-The supported models can be controlled with the toggle button (copy
-`scripts/BTN_0` to `/etc/rc.button/BTN_0`). One of the leds will be toggled
-on/off to indicate the status of the tunnel.
+The supported models can be controlled with the toggle button (A symlink should
+be created in `/etc/rc.button/BTN_0` on the first run). One of the leds will be
+toggled on/off to indicate the status of the tunnel.
 
-Alternatively, for the time being you can control the connection via the REST
-api:
+Alternatively, for the time being you can control the connection via the REST API:
 
 ```
 # with curl, locally from the router
@@ -130,6 +129,11 @@ curl localhost:8080/stop
 ```
 
 You will see logs in the standard output.
+
+## Routing and DNS leak prevention
+
+Work in progress. Please do [read this](https://0xacab.org/kali/bitmask-openwrt/-/tree/master/docs/routing.md)
+for pointers. Contributions welcome!
 
 ## Configure
 
