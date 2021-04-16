@@ -1,0 +1,5 @@
+Known issues
+
+* [ ] reattach to an ongoing openvpn process
+* [ ] write temporary password in its own file
+* [ ] do not poll state, subscribe to new data

@@ -1,15 +1,21 @@
+import posix
 import prologue
 
-import webapi
 import commands
+import logs
+import webapi
 
 let
   initialize = initEvent(registerCommandDispatcher)
   settings = newSettings(
     appName = "bitmask", address="localhost", debug=false)
-#??? numThreads=1)
 
 when isMainModule:
+  onSignal(posix.SIGTERM):
+    info("SIGTERM Received")
+    #doStop
+    quit()
+
   var app = newApp(settings = settings, startup = @[initialize])
   app.addRoute("/status", doStatus)
   app.addRoute("/start", doStart)

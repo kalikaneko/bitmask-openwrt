@@ -12,5 +12,5 @@ start() {
  
 stop() {
         echo stop
-        kill -15 bitmaskd
+        kill -15 $(pidof bitmaskd)
 }

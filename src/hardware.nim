@@ -1,4 +1,5 @@
 import json
+import posix
 import os
 import streams
 import strutils
@@ -20,18 +21,30 @@ const knownBUTTONS = {
 }
 
 const kernelGpio = "/sys/kernel/debug/gpio"
+const systemButton = "/etc/rc.button/BTN_0"
+const buttonScript = "/etc/bitmask/scripts/BTN_0"
+const systemBoard = "/etc/board.json"
 
 var
   model {.threadvar.}: string
   leds {.threadvar.}: Table[string, string]
   button {.threadvar.}: Table[string, string]
 
+proc symlinkScripts() =
+  if fileExists(buttonScript):
+    if not fileExists(systemButton):
+      createSymlink(buttonScript, systemButton)
+      discard chmod(systemButton, 448)
+    else:
+      warn("There is an existing script at $#, I prefer not to overwrite it. If you want full hardware support, you might want to manually symlink it to $#" % [systemButton, buttonScript])
+
 proc doInitBoard*() =
-  let j = parseFile("/etc/board.json")
+  let j = parseFile(systemBoard)
   model = j{"model"}{"id"}.getStr()
   leds = knownLEDS.toTable
   button = knownBUTTONS.toTable
   info("Board: " & $model)
+  symlinkScripts()
 
 proc ledStatusOn*() {.gcsafe.} =
   if model != "":
