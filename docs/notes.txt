@@ -3,3 +3,8 @@ useful repos/docs
 https://github.com/oilervoss/openvpnForNordvpn
 https://gitlab.torproject.org/legacy/trac/-/wikis/doc/OpenWRT
 https://github.com/SuperBuker/tor-openwrt
+https://openwrt.org/docs/guide-user/services/ad-blocking
+
+sysupgrade
+----------
+https://openwrt.org/toh/gl.inet/gl.inet_gl-mt300n_v2#terminal_upgrade_process

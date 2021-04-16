@@ -1,5 +1,7 @@
 Known issues
 
+* [ ] write logs to /var/log/bitmask/vpn.log / see logd
 * [ ] reattach to an ongoing openvpn process
+* [ ] watchdog
 * [ ] write temporary password in its own file
 * [ ] do not poll state, subscribe to new data
