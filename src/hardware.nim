@@ -1,6 +1,7 @@
 import json
 import posix
 import os
+import osproc
 import streams
 import strutils
 import tables
@@ -31,12 +32,24 @@ var
   button {.threadvar.}: Table[string, string]
 
 proc symlinkScripts() =
+  var dolink = false
   if fileExists(buttonScript):
     if not fileExists(systemButton):
-      createSymlink(buttonScript, systemButton)
-      discard chmod(systemButton, 448)
+      dolink = true
     else:
-      warn("There is an existing script at $#, I prefer not to overwrite it. If you want full hardware support, you might want to manually symlink it to $#" % [systemButton, buttonScript])
+      let ours = execProcess("grep -c LEAP " & systemButton).strip
+      if ours == "1":
+          dolink = true
+      else:
+        warn(r"""There is an existing script at $#, I prefer not to overwrite it.
+     If you want full hardware support, you might want to manually symlink it:
+     cp /etc/rc.button/BTN_0 /etc/rc.button/BTN_0.OLD
+     ln -s $# $#""" % [systemButton, buttonScript, systemButton])
+  if dolink:
+    if fileExists(systemButton):
+      discard tryRemoveFile(systemButton)
+    createSymlink(buttonScript, systemButton)
+    discard chmod(systemButton, 448)
 
 proc doInitBoard*() =
   let j = parseFile(systemBoard)
