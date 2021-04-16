@@ -1,0 +1,16 @@
+#!/bin/sh /etc/rc.common
+# Launch BitmaskVPN
+# Copyright (C) 2021 Kali Kaneko
+ 
+START=10
+STOP=15
+ 
+start() {
+        echo start
+        /usr/bin/bitmaskd
+}
+ 
+stop() {
+        echo stop
+        kill -15 bitmaskd
+}

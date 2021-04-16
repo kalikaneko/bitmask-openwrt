@@ -47,6 +47,7 @@ endif
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 	cp -r providers $(PKG_BUILD_DIR)
+	cp -r scripts $(PKG_BUILD_DIR)
 	$(Build/Patch)
 endef
 
@@ -58,9 +59,12 @@ endef
 
 define Package/bitmask-vpn/install
 	$(INSTALL_DIR) $(1)/usr/bin
+	$(INSTALL_DIR) $(1)/etc/bitmask/scripts
+	$(INSTALL_DIR) $(1)/etc/rc.button/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/bitmaskd $(1)/usr/bin/
 	$(INSTALL_DIR) $(1)/etc/bitmask
 	$(CP) -r $(PKG_BUILD_DIR)/providers $(1)/etc/bitmask
+	$(CP) -r $(PKG_BUILD_DIR)/scripts $(1)/etc/bitmask
 endef
 
 
