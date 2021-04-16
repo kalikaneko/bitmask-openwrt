@@ -21,15 +21,18 @@ If you want to help testing, please follow these steps from your router:
 
 ### 1. Add kali's feed to your `/etc/opkg/customfeeds.conf`
 
+For `ar-750`:
+
 ```
-# for ar-750 
 src leap https://sindominio.net/kali/openwrt/packages/mips_24kc/leap
 src leap-openwrt https://sindominio.net/kali/openwrt/packages/mips_24kc/packages/
+```
 
-# for mt-300m-v2
+For `mt-300m-v2`:
+
+```
 src leap https://sindominio.net/kali/openwrt/packages/mipsel_24kc/leap
 src leap-openwrt https://sindominio.net/kali/openwrt/packages/mipsel_24kc/packages/
-
 ```
 
 ### 2. Download and verify the developer key.
@@ -63,35 +66,10 @@ opkg install bitmask-vpn
 If you had a previous version of openvpn-mbedtls you might want to uninstall it and get the one in kali's feed instead, since this one is compiled with management support.
 
 
-## Development
-
-```
-# runtime
-apt install openvpn
-
-# compilation (host)
-apt install nim
-```
-
-## Compile
-
-```
-cd src
-make deps
-make build
-```
-
 ## Cross-compile packages
 
-The quick-n-dirty way:
-
-Get a recent 👑 [nim](https://nim-lang.org/) version (use `choosenim`).
-
-Optionally, you can use [upx](https://upx.github.io/) in your host to reduce
-the binary size. Note that upx 3.96 seems to have [a bug with mipsel](https://github.com/upx/upx/issues/87),
-use [3.93](https://github.com/upx/upx/releases/download/v3.93/upx-3.93-amd64_linux.tar.xz) instead.
-
-From the top of your [OpenWRT SDK](https://github.com/openwrt/openwrt/), do:
+* Get a recent 👑 [nim](https://nim-lang.org/) version (use `choosenim`).
+* From the top of your [OpenWRT SDK](https://github.com/openwrt/openwrt/), do:
 
 ```
 git clone https://0xacab.org/kali/bitmask-openwrt ../bitmask-openwrt
@@ -99,13 +77,13 @@ ln -s ../bitmask-openwrt package/bitmask-vpn
 make package/bitmask-vpn/{clean,compile}
 ```
 
-Package will be ready under `bin/packages`:
+* Package will be ready under `bin/packages`:
 
 ```
 bin/packages/mipsel_24kc/base/bitmask-vpn_0.0.1-1_mipsel_24kc.ipk
 ```
 
-See `docs/build-packages.md` for the whole story.
+[Here](https://0xacab.org/kali/bitmask-openwrt/-/tree/master/docs/build-packages.md) is the whole story.
 
 ## Run
 
@@ -163,11 +141,6 @@ If you have `tor` and `torsocks` installed in the router, you can use the Tor ne
 ```
 useTor=true
 ```
-
-## Issues
-
-Do note that, for the time being, *no firewall* is implemented. It's your
-responsibility to properly secure your device and avoid leaks.
 
 ## Contributing
 
