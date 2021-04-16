@@ -148,6 +148,14 @@ You can get a list of valid locations with:
 curl localhost:8080/locations
 ```
 
+### Use Tor
+
+If you have `tor` and `torsocks` installed in the router, you can use the Tor network to fetch configuration and certificates.
+
+```
+useTor=true
+```
+
 ## Issues
 
 Do note that, for the time being, *no firewall* is implemented. It's your

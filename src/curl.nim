@@ -1,10 +1,11 @@
 import config
+import logs
 import json
-import strutils
 import os
 import osproc
 import posix
 import streams
+import strutils
 
 const
   curlLE = "curl --silent "
@@ -14,7 +15,10 @@ const
 
 template getURL*(url: string): string =
   let provider = getProvider()
-  let cmd = curl % [provider,]
+  var cmd = curl % [provider,]
+  if useTor():
+    debug("Fetching with Tor")
+    cmd = "torsocks " & cmd
   execProcess(cmd & $url)
 
 proc dump*(pth: string, data: string) =

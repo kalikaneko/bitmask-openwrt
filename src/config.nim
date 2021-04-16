@@ -12,6 +12,7 @@ const DEFAULT_CA="https://black.riseup.net/ca.crt"
 
 var location {.threadvar.}: string
 var autoSel {.threadvar.}: bool
+var tor {.threadvar.}: bool
 var provider{.threadvar.}: string
 var providerApi{.threadvar.}: string
 var menshenUrl{.threadvar.}: string
@@ -70,6 +71,12 @@ proc setAuto*(value: bool) =
 
 proc isAuto*(): bool =
   return autoSel
+
+proc useTor*(): bool =
+  return tor
+
+proc setTor(value: bool) =
+  tor = value
 
 proc toBool(v: string): bool =
   case v.toLowerAscii
@@ -132,6 +139,8 @@ proc parseConfig*() =
   if menshen != "":
      setMenshenUrl(menshen)
   var selAuto = toBool(d.getSectionValue(Locations,"auto", "true"))
+  var tor = toBool(d.getSectionValue("", "useTor", "false"))
+  setTor(tor)
   if (not selAuto and preferred == ""):
     echo "ERROR if auto is set to false, I need a preferred location"
   setAuto(selAuto)

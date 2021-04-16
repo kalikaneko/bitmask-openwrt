@@ -1,3 +1,5 @@
 useful repos/docs
 -----------------
 https://github.com/oilervoss/openvpnForNordvpn
+https://gitlab.torproject.org/legacy/trac/-/wikis/doc/OpenWRT
+https://github.com/SuperBuker/tor-openwrt
