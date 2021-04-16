@@ -85,7 +85,11 @@ make build
 
 The quick-n-dirty way:
 
-Get a recent 👑 [nim](https://nim-lang.org/) version (use `choosenim`) and [upx](https://upx.github.io/) in your host.
+Get a recent 👑 [nim](https://nim-lang.org/) version (use `choosenim`).
+
+Optionally, you can use [upx](https://upx.github.io/) in your host to reduce
+the binary size. Note that upx 3.96 seems to have [a bug with mipsel](https://github.com/upx/upx/issues/87),
+use [3.93](https://github.com/upx/upx/releases/download/v3.93/upx-3.93-amd64_linux.tar.xz) instead.
 
 From the top of your [OpenWRT SDK](https://github.com/openwrt/openwrt/), do:
 

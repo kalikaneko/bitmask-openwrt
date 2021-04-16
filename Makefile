@@ -34,11 +34,12 @@ define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 endef
 
+# just to make sure we don't pass something nim won't recognize
 ifeq ($(ARCH),mips)
-  NIM_TARGET:=mips
+	NIM_TARGET:=mips
 endif
 ifeq ($(ARCH),mipsel)
-  NIM_TARGET:=mipsel
+	NIM_TARGET:=mipsel
 endif
 
 # Package preparation; create the build directory and copy the source code.
@@ -52,8 +53,8 @@ endef
 define Build/Compile
 	nim -d:release --threads:on --opt=size --cpu:$(NIM_TARGET) --os:linux --outDir:$(PKG_BUILD_DIR) c src/bitmask.nim
 endef
-# FIXME upx seems to mess mips binary, investigate
-#	upx $(PKG_BUILD_DIR)/bitmaskd
+# upx --brute $(PKG_BUILD_DIR)/bitmaskd
+# upx==3.93 is tested, higher versions seem to inutilize the binary https://github.com/upx/upx/issues/87
 
 define Package/bitmask-vpn/install
 	$(INSTALL_DIR) $(1)/usr/bin
