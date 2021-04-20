@@ -19,6 +19,25 @@ sysupgrade
 ----------
 https://openwrt.org/toh/gl.inet/gl.inet_gl-mt300n_v2#terminal_upgrade_process
 
+NOTE if you have some custom modifications you dont want to lose, you can add
+     them to /etc/sysupgrade.conf
+
 export IMG=openwrt-ramips-mt76x8-glinet_gl-mt300n-v2-squashfs-sysupgrade.bin
 scp bin/targets/ramips/mt76x8/$IMG root@router:/tmp/
 ssh root@router "sysupgrade $IMG"
+
+NOTE sysupgrade -v -n # -n option for NOT preserving configs -> will wipe
+     everything, including configs / network etc.
+
+adblock
+------------
+WIP: (seems like it's working)
+
+# i should see if the intervention can be reduced to a minimum
+# ie, useAdBlock=true -> and execute startup script or something.
+
+opkg update
+opkg --force-overwrite install gawk grep sed
+uci set simple-adblock.config.enabled='1'; uci commit simple-adblock;
+/etc/init.d/simple-adblock start
+

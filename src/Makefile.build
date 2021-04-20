@@ -1,3 +1,5 @@
 install:
 	mkdir -p $(DESTDIR)/usr/bin
+	mkdir -p $(DESTDIR)/etc/bitmask
 	cp bitmaskd $(DESTDIR)/usr/bin/
+	cp -r scripts $(DESTDIR)/etc/bitmask/

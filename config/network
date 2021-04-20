@@ -26,7 +26,7 @@ config interface 'wan'
 
 config device 'wan_eth0_2_dev'
 	option name 'eth0.2'
-	option macaddr 'e4:95:6e:45:2a:da'
+	option macaddr 'ac:ab:be:ee:ff'
 
 config interface 'wan6'
 	option ifname 'eth0.2'

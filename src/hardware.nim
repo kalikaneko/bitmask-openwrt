@@ -11,14 +11,21 @@ import logs
 # TODO when support grows, this module can be generated from a json.
 # For the time being it is enough with defining switch and vpn leds.
 
+# the paths depend on whether image has been compiled with the option to
+# prepend platform name to the files, I guess... we could try both, assuming
+# some people will be running this on stock firmware or upstream openwrt, not
+# necessarily the images I built.
+#"gl-ar750": "/sys/devices/platform/leds-gpio/leds/gl-ar750:white:wlan5g/brightness",
+#"gl-mt300n-v2": "/sys/devices/platform/leds/leds/gl-mt300n-v2:green:wan/brightness"
+
 const knownLEDS = {
-  "gl-ar750": "/sys/devices/platform/leds-gpio/leds/gl-ar750:white:wlan5g/brightness",
-  "gl-mt300n-v2": "/sys/devices/platform/leds/leds/gl-mt300n-v2:green:wan/brightness"
+  "gl-ar750": "/sys/devices/platform/leds-gpio/leds/white:wlan5g/brightness",
+  "gl-mt300n-v2": "/sys/devices/platform/leds/leds/green:wan/brightness"
 }
 
 const knownBUTTONS = {
   "gl-ar750": "sw1",
-  "gl-mt300n-v2": "gpio-0"
+  "gl-mt300n-v2": "BTN_0"
 }
 
 const kernelGpio = "/sys/kernel/debug/gpio"
@@ -57,7 +64,10 @@ proc symlinkScripts() =
 
 proc doInitBoard*() =
   let j = parseFile(systemBoard)
-  model = j{"model"}{"id"}.getStr()
+  var m = j{"model"}{"id"}.getStr()
+  if m.contains(","):
+    m = m.split(",")[1]
+  model = m.strip()
   leds = knownLEDS.toTable
   button = knownBUTTONS.toTable
   info("Board: " & $model)
@@ -77,15 +87,14 @@ proc ledStatusConnecting*() =
 
 proc readButton(path, id: string): string =
   for line in newStringStream(readFile(path)).lines:
-    if contains(line, id):
-      let p = line.strip().split(" ")
-      return p[p.len-1]
+    if line.contains(id):
+      return line
 
 proc isButtonON*(): bool =
-  let b = readButton(kernelGpio, button[model])
-  if b == "hi":
+  let line = readButton(kernelGpio, button[model])
+  if line.contains("hi"):
     return true
-  elif b == "lo":
+  elif line.contains("lo"):
     return false
   bug("cannot read button")
   return false
