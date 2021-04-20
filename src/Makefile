@@ -18,3 +18,5 @@ test-MT300N: build-mipsel #pack
 	scp bitmaskd root@192.168.1.1:./
 test-AR750: build-mips #pack
 	scp bitmaskd root@192.168.8.1:./
+install:
+	echo "INSTALLING..."

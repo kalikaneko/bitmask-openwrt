@@ -1,0 +1,3 @@
+install:
+	mkdir -p $(DESTDIR)/usr/bin
+	cp bitmaskd $(DESTDIR)/usr/bin/

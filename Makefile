@@ -7,12 +7,17 @@ PKG_RELEASE:=5
 PKG_LICENSE:=GPL-3.0
 PKG_MAINTAINER:=Kali Kaneko <kali@leap.se>
 
+
 #PKG_BUILD_DIR:=$(BUILD_DIR)/bitmask-$(PKG_VERSION)
 #PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 #PKG_SOURCE_URL:=https://sindominio.net/~kali/bitmask/$(PKG_NAME)-$(PKG_VERSION).tar.gz
 #PKG_HASH:=274667884fa1f240334279bcf4af37c33f9bcf01086fc6705fe4f98726e9eafe
 
 HOST_BUILD_DEPENDS:=nim/host
+
+# this is an attempt at making the package installable when building the image,
+# but it's not working, so probably delete since it only adds some duplication.
+PKG_INSTALL:=1
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -48,6 +53,7 @@ define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 	cp -r providers $(PKG_BUILD_DIR)
 	cp -r scripts $(PKG_BUILD_DIR)
+	cp -r src/Makefile.build $(PKG_BUILD_DIR)/Makefile
 	$(Build/Patch)
 endef
 
@@ -66,6 +72,5 @@ define Package/bitmask-vpn/install
 	$(CP) -r $(PKG_BUILD_DIR)/providers $(1)/etc/bitmask
 	$(CP) -r $(PKG_BUILD_DIR)/scripts $(1)/etc/bitmask
 endef
-
 
 $(eval $(call BuildPackage,bitmask-vpn))

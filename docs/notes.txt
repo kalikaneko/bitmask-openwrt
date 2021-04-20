@@ -5,6 +5,20 @@ https://gitlab.torproject.org/legacy/trac/-/wikis/doc/OpenWRT
 https://github.com/SuperBuker/tor-openwrt
 https://openwrt.org/docs/guide-user/services/ad-blocking
 
+image builder
+-------------
+https://blog.laczik.org/create-custom-openwrt-image-for-tp-link-tl-wa901ndv2/
+https://forum.archive.openwrt.org/viewtopic.php?id=52552 -- I might be doing
+something wrong, but I don't manage to get the ipkg included in the image...
+(other packages like tor, tinc etc do work).
+
+for now, the "add-files.sh" hack does work well enough for me, so I'll look
+into this later.
+
 sysupgrade
 ----------
 https://openwrt.org/toh/gl.inet/gl.inet_gl-mt300n_v2#terminal_upgrade_process
+
+export IMG=openwrt-ramips-mt76x8-glinet_gl-mt300n-v2-squashfs-sysupgrade.bin
+scp bin/targets/ramips/mt76x8/$IMG root@router:/tmp/
+ssh root@router "sysupgrade $IMG"
