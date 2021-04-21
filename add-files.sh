@@ -24,7 +24,7 @@ cp build_dir/target-${TARGET}/bitmask-vpn-${VERSION}/bitmaskd files/usr/bin/
 cp -r build_dir/target-${TARGET}/bitmask-vpn-${VERSION}/providers files/etc/bitmask/
 cp -r build_dir/target-${TARGET}/bitmask-vpn-${VERSION}/scripts files/etc/bitmask/
 cd files/etc/rc.button && rm -f BTN_0 && ln -s ../bitmask/scripts/BTN_0 . && cd ../../../
-cd files/etc/hotplug.d/iface && rm -f 99-noleak && ln -s ../bitmask/scripts/99-noleak . && cd ../../../../
+cd files/etc/hotplug.d/iface && rm -f 99-noleak && ln -s ../../bitmask/scripts/99-noleak . && cd ../../../../
 cd files/etc && rm -f firewall.user && ln -s bitmask/scripts/firewall.user . && cd ../../
 
 # glinet-m300n-v2
