@@ -149,4 +149,4 @@ Please open an issue; merge requests and suggestions are welcome.
 
 ## Contact
 
-This project is maintained by Kali Kaneko. I hang out in IRC (#leap and #bitmask-dev at freenode).
+This project is maintained by Kali Kaneko. I hang out in IRC (#leap and #bitmask-dev at libera.chat).
