@@ -15,6 +15,7 @@ import banner
 import checks
 import config
 import curl
+import util
 import hardware
 import logs
 import management
@@ -78,6 +79,13 @@ initLock(vpnLock)
 var openvpnProc {.threadvar.}: Process
 var gateway {.threadvar.}: Gateway
 
+proc startService(): void =
+  # TODO check if running, then restart instead
+  discard execProcess("/etc/init.d/openvpn start")
+
+proc stopService(): void =
+  discard execProcess("/etc/init.d/openvpn stop")
+
 proc releaseVpnLock(): void =
   if not openvpnProc.running:
     try:
@@ -104,7 +112,7 @@ proc strToEIP(stateStr: string): EIPState =
   else: result = EIPstate.CONNECTING
 
 
-proc getCommandFor*(gw: Gateway): string =
+proc getCommandFor*(gw: Gateway, oneline: bool=true): string =
     let remote = gw.ip_address
     var port = ""
     try:
@@ -121,9 +129,30 @@ proc getCommandFor*(gw: Gateway): string =
     var transport = "tcp"
     if udp == "1":
       transport = "udp"
-    result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} {transport} --verb {debugLevel} --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.2 --tls-cipher DHE-RSA-AES128-SHA --ca {ca} --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --management 127.0.0.1 6061 --redirect-gateway --connect-retry 2 --connect-retry-max 10 --persist-tun"
-    if debug != "":
-      result = result & " --log /tmp/bitmask-openvpn.log"
+    if oneline:
+      result = fmt"openvpn --client --dev tun --remote-cert-tls server --tls-client --remote {remote} {port} {transport} --verb {debugLevel} --auth SHA1 --cipher AES-128-CBC --keepalive 10 30 --tls-version-min 1.2 --tls-cipher DHE-RSA-AES128-SHA --ca {ca} --cert /dev/shm/leap.crt --key /dev/shm/leap.crt --management 127.0.0.1 6061 --redirect-gateway --connect-retry 2 --connect-retry-max 10 --persist-tun"
+      if debug != "":
+        result = result & " --log /tmp/bitmask-openvpn.log"
+    else:
+      result = fmt"""client
+dev tun
+remote-cert-tls server
+tls-client
+remote {remote} {port} {transport}
+verb {debugLevel}
+auth SHA1
+cipher AES-128-CBC
+keepalive 10 30
+tls-version-min 1.2
+tls-cipher DHE-RSA-AES128-SHA
+ca {ca}
+cert /dev/shm/leap.crt
+key /dev/shm/leap.crt
+management 127.0.0.1 6061
+redirect-gateway
+connect-retry 2
+connect-retry-max 10
+persist-tun"""
 
 proc getGateways(url: string): seq[Gateway] =
   let j = getJson(url)
@@ -222,7 +251,7 @@ proc runVPNProc*(command: string): bool {.gcsafe.} =
     echo "ERROR cannot launch openvpn"
 
 proc getCert(certUrl, caUrl: string) {.async.} =
-  dump("/dev/shm/leap.crt", getURL(certUrl))
+  dumpFile("/dev/shm/leap.crt", getURL(certUrl))
 
 proc doInitVPN() =
   getCACrt()
@@ -317,8 +346,14 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
       info("Using preferred location: " & $loc)
       info("Selected gateway: " & $gw.host)
 
-    let cmd = getCommandFor(gw)
-    let ok = runVPNProc(cmd)
+    if useService():
+      let cfg = getCommandFor(gw, oneline=false)
+      dumpServiceConfig(prov, cfg)
+      info("Using openvpn service")
+      startService()
+    else:
+      let cmd = getCommandFor(gw)
+      let ok = runVPNProc(cmd)
 
     addTimer(pollPeriod, true, getManager)
     addTimer(pollPeriod, false, fetchStatus)
@@ -337,11 +372,14 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
       echo "WARN not stopping, eip status is " & $eipSt
       return
 
-    try:
-      mng.doTerminate()
-      sleepAsync(32).addCallback(()=>releaseVpnLock())
-    except:
-      echo getCurrentExceptionMsg()
+    if useService():
+      stopService()
+    else:
+      try:
+        mng.doTerminate()
+        sleepAsync(32).addCallback(()=>releaseVpnLock())
+      except:
+        echo getCurrentExceptionMsg()
 
   proc maybeStartVPN() =
     if isButtonON():

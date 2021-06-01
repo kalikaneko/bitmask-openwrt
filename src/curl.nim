@@ -7,6 +7,8 @@ import posix
 import streams
 import strutils
 
+import util
+
 const
   curlLE = "curl --silent "
   providers = "/etc/bitmask/providers"
@@ -20,11 +22,6 @@ template getURL*(url: string): string =
     debug("Fetching with Tor")
     cmd = "torsocks " & cmd
   execProcess(cmd & $url)
-
-proc dump*(pth: string, data: string) =
-  let s = newFileStream(pth, fmWrite)
-  s.write(data)
-  s.close()
 
 proc getJson*(url: string): JSonNode =
   var str = getURL(url)
@@ -43,4 +40,4 @@ proc getCACrt*() =
     let caUrl = getCaUrl()
     echo "DEBUG geting " & caUrl
     echo "DEBUG writing ca.crt to " & $crtPath
-    dump(crtPath, execProcess(curlLE & $caUrl))
+    dumpFile(crtPath, execProcess(curlLE & $caUrl))

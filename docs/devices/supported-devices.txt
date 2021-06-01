@@ -13,7 +13,7 @@ GL-iNet MT-1300
 ---------------
 wiki: https://openwrt.org/toh/hwdata/gl.inet/gl.inet_gl-mt1300
 target: ramips
-Subtarget: mt7621
+subtarget: mt7621
 arch: mipsel_24kc
 cpu: MediaTek MT7621A
 
@@ -25,3 +25,10 @@ subtarget: generic
 arch: mips_24kc
 cpu: Qualcomm Atheros QCA9531
 
+In progress
+=========================
+wiki: https://openwrt.org/toh/hwdata/d-team/d-team_newifi_d2
+target: ramips
+arch: mipsel_24kc
+subtarget: mt7621
+cpu: MediaTek MT7621AT

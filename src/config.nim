@@ -1,10 +1,15 @@
 import parsecfg
 import strutils
+import strformat
+import streams
 import os
 import posix
 
+import util
+
 const CONFIG = "bitmask.cfg"
 const SYSDIR = "/etc/bitmask"
+const VPNDIR = "/etc/openvpn"
 const DEFAULT_PROVIDER = "riseup"
 const DEFAULT_API = "https://api.black.riseup.net/"
 const DEFAULT_MENSHEN = "https://api.black.riseup.net:9001/json"
@@ -13,6 +18,7 @@ const DEFAULT_CA="https://black.riseup.net/ca.crt"
 var location {.threadvar.}: string
 var autoSel {.threadvar.}: bool
 var tor {.threadvar.}: bool
+var service {.threadvar.}: bool
 var provider{.threadvar.}: string
 var providerApi{.threadvar.}: string
 var menshenUrl{.threadvar.}: string
@@ -78,6 +84,12 @@ proc useTor*(): bool =
 proc setTor(value: bool) =
   tor = value
 
+proc useService*(): bool =
+  return service
+
+proc setService(value: bool) =
+  service = value
+
 proc toBool(v: string): bool =
   case v.toLowerAscii
   of "true":
@@ -141,6 +153,21 @@ proc parseConfig*() =
   var selAuto = toBool(d.getSectionValue(Locations,"auto", "true"))
   var tor = toBool(d.getSectionValue("", "useTor", "false"))
   setTor(tor)
+
+  var useService = toBool(d.getSectionValue("", "useService", "false"))
+  setService(useService)
+
   if (not selAuto and preferred == ""):
     echo "ERROR if auto is set to false, I need a preferred location"
   setAuto(selAuto)
+
+proc dumpServiceConfig*(provider, cfg: string) =
+  let pth = VPNDIR & "/" & provider & ".ovpn"
+  dumpFile(pth, cfg)
+  # TODO avoid duplicate
+  let vpnCfg = fmt"""package openvpn
+
+config openvpn {provider}
+    option enabled 1
+    option config {pth}"""
+  dumpFile("/etc/config/openvpn", vpnCfg)
