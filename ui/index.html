@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><html>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitmask/OpenWRT</title>
+
+<!-- TODO have a look at https://codepen.io/idrakimuhamad/pen/ZyVyeK for styling inspiration: arcs -->
+
+<script src="/d3.min.js"></script>
+<script src="/topojson.min.js"></script>
+<script src="/datamaps.world.min.js"></script>
+<link rel="stylesheet" href="/mini.css">
+
+<style>
+.datamaps-bubble {
+    cursor: pointer;
+}
+.vertical-center {
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
+.gw-sel-box {
+    position: relative;
+    width: 320px;
+}
+
+.loc-h2 {
+    padding-top: 2em;
+}
+
+.loc-container {
+    left: 50%;
+    padding-left: 5em;
+    padding-right: 5em;
+}
+
+#gateways {
+    position: relative;
+    min-height: 300px;
+}
+
+.status-box {
+    position: relative;
+}
+
+.right {
+    float: right;
+}
+
+.center {
+    display:flex;
+    justify-content:center;
+}
+
+.huge {
+    font-size: 6em;
+    font-weight: 800;
+}
+
+.providerLogo {
+    margin-top: 10px;
+}
+
+</style>
+</head>
+
+<body class="responsive-padding">
+
+<header>
+<div class="container">
+<div class="row">
+  <small>
+      <a href="#" class="logo">BitmaskVPN for OpenWRT</a>
+  </small>
+</div>
+</header>
+</div>
+</div>
+
+<div class="container">
+<div class="row">
+  <div class="col-sm-4">
+      <div class="card">
+        <div class="section">
+            <div class="container">
+                <div class="row center">
+                    <div id="providerDisplay" class="col-sm-8">
+                        <h2>RiseUP</h2>
+                    </div>
+                    <div class="col-sm-4">
+                        <img class="providerLogo" src="/img/riseup.png"/>
+                    </div>
+                </div>
+                <div class="row center">
+                    <div class="col-sm-12 center">
+                        <small>
+                         Please <a href="https://riseup.net/vpn/donate">donate</a>
+                         to keep RiseupVPN running!  Problems? Check <a href="https://riseupstatus.net/affected/riseupvpn/">status</a>
+                         </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="section">
+            <div class="center">
+                <div class="large">Visible IP: <mark id="ipBox" class="primary"></mark></div>
+            </div>
+            <div class="center">
+                <div class="large">Location: <mark id="locBox"></mark></div>
+            </div>
+            <div class="center">
+                <div class="large">Detected ISP: <mark id="ispBox" class="primary"></mark></div>
+            </div>
+        </div>
+      </div>
+  </div>
+  <div class="col-sm-2">
+      <div class="card status right">
+        <div class="section large status-box center">
+            <div><h2>Status: <mark id="vpnStatus" class="secondary">OFF</mark></h2></div>
+        </div>
+        <div class="section center">
+            <button id="vpnswitch" class="shadowed tertiary" onClick="vpnToggle()">Switch ON</button>
+            <div id="vpn-spinner" class="spinner tertiary vertical-center" style="margin-top: 22px; margin-left: 10px; visibility:hidden;" ></div>
+        </div>
+      </div>
+  </div>
+</div>
+
+
+<h2 class="loc-h2">Locations <span class="icon-location"></span></h2>
+
+<div>
+</div>
+
+<div class="container">
+  <div class="row">
+      <div class="col-sm-4">
+          <span id="reconnect-toast" class="toast"
+                style="visibility:hidden">
+          Location changes will take effect next time we connect to the VPN.
+          </span>
+      </div>
+  </div>
+  <div class="row">
+      <div class="col-sm-4">
+        <div class="huge"><span id="selGwBox">Paris</span></div>
+      </div>
+      <div class="col-sm-2 gw-sel-box">
+          <div class="card right">
+            <form id="autoManualSwitch">
+                <input type="radio" id="autoButton" name="locationType" value="auto" onclick="autoSelection()" checked>
+                <label for="auto">Recommended</label><br>
+                <input type="radio" id="manualButton" name="locationType" value="manual" onclick="manualSelection()">
+                <label for="manual">Manual</label><br>
+                <select name="locations" id="locations"> <!-- style="visibility:hidden" -->
+                </select> 
+            </form>
+          </div>
+    </div>
+  </div>
+</div>
+
+<div class="container loc-container">
+<div class="row">
+    <div class="col-sm-6" id="gateways"></div>
+</div>
+
+<script src="/main.js"></script>
+
+<footer class="sticky">
+<center>
+    <small>© 2021 LEAP Encryption Access Project
+        <a href="https://0xacab.org/kali/bitmask-openwrt">source code</a> |
+        <a href="https://sindominio.net/kali/bitmask">docs</a>
+    </small>
+</center>
+</footer>
+</body>

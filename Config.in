@@ -1,0 +1,7 @@
+# bitmask-vpn configuration
+menu "Configuration"
+	depends on PACKAGE_bitmask-vpn
+config BITMASKVPN_WEBUI
+	bool "Enable webui (experimental)"
+	default n
+endmenu

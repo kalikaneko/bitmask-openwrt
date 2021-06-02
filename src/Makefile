@@ -2,10 +2,14 @@ all: build
 
 build:
 	nim release.nims
+ui:
+	nim c --out:"uiserver" --threads:on webui.nim
 build-mips:
 	nim compile -d:release -d:usestd --threads:on --opt:size --cpu:mips --os:linux --out:"bitmaskd" --stackTrace:on --lineTrace:on bitmask.nim
 build-mipsel:
-	nim compile -d:release --threads:on --opt:size --cpu:mipsel --os:linux --out:"bitmaskd" bitmask.nim
+	#-d:usestd might help
+	#--opt:size
+	nim compile -d:release --threads:on --cpu:mipsel --os:linux --out:"bitmaskd" --stackTrace:on --lineTrace:on bitmask.nim
 pack:
 	upx bitmaskd
 deps:

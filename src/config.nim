@@ -1,19 +1,30 @@
 import parsecfg
 import strutils
 import strformat
-import streams
 import os
 import posix
 
 import util
 
-const CONFIG = "bitmask.cfg"
-const SYSDIR = "/etc/bitmask"
-const VPNDIR = "/etc/openvpn"
-const DEFAULT_PROVIDER = "riseup"
-const DEFAULT_API = "https://api.black.riseup.net/"
-const DEFAULT_MENSHEN = "https://api.black.riseup.net:9001/json"
-const DEFAULT_CA="https://black.riseup.net/ca.crt"
+const
+  START* = "start"
+  STOP* = "stop"
+  STATUS* = "status"
+  GWLOCATIONS* = "gwlocations"
+  GWLOCATIONSJSON* = "gwlocationsjson"
+  LOCATIONSET* = "locationset"
+  GETIP* = "getip"
+
+const
+  CONFIG = "bitmask.cfg"
+  SYSDIR = "/etc/bitmask"
+  VPNDIR = "/etc/openvpn"
+  DEFAULT_PROVIDER = "riseup"
+  DEFAULT_API = "https://api.black.riseup.net/"
+  DEFAULT_MENSHEN = "https://api.black.riseup.net:9001/json"
+  DEFAULT_CA="https://black.riseup.net/ca.crt"
+
+const wtfIpUrl* = "https://wtfismyip.com/json"
 
 var location {.threadvar.}: string
 var autoSel {.threadvar.}: bool
@@ -23,6 +34,7 @@ var provider{.threadvar.}: string
 var providerApi{.threadvar.}: string
 var menshenUrl{.threadvar.}: string
 var caUrl{.threadvar.}: string
+
 
 proc getProvider*(): string =
   var p = DEFAULT_PROVIDER
@@ -58,6 +70,7 @@ proc getCaPath*(): string =
   return SYSDIR & "/providers/" & getProvider() & "/ca.crt"
 
 proc getEipUrl*(): string =
+  # FIXME use api v3, write unit test
   return getProviderApi() & "/1/config/eip-service.json"
 
 proc getMenshenUrl*(): string =
@@ -66,17 +79,20 @@ proc getMenshenUrl*(): string =
 proc setMenshenUrl(value: string) =
   menshenUrl = value
 
-proc setLocation*(value: string) =
-  location = value
-
-proc getLocation*(): string =
-  return location 
-
 proc setAuto*(value: bool) =
   autoSel = value
 
 proc isAuto*(): bool =
   return autoSel
+
+proc setLocation*(value: string) =
+  # setting one location switches to manual mode,
+  # auto needs to be selected explicitely
+  setAuto(false)
+  location = value
+
+proc getLocation*(): string =
+  return location 
 
 proc useTor*(): bool =
   return tor
@@ -171,3 +187,4 @@ config openvpn {provider}
     option enabled 1
     option config {pth}"""
   dumpFile("/etc/config/openvpn", vpnCfg)
+

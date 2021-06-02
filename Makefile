@@ -1,8 +1,8 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=bitmask-vpn
-PKG_VERSION:=0.0.1
-PKG_RELEASE:=5
+PKG_VERSION:=0.2.0
+PKG_RELEASE:=1
 
 PKG_LICENSE:=GPL-3.0
 PKG_MAINTAINER:=Kali Kaneko <kali@leap.se>
@@ -29,10 +29,11 @@ define Package/bitmask-vpn
   SUBMENU:=VPN
   PROVIDES:=bitmaskd
   DEPENDS:=+openvpn-mbedtls +curl +kmod-tun +ip-tiny
+  MENU:=1
 endef
 
 define Package/bitmask-vpn/description
-  Configure OpenVPN to use RiseupVPN or other compatible LEAP-VPN providers.
+	Configure OpenVPN to use RiseupVPN or other compatible LEAP-VPN providers.
 endef
 
 define Build/Prepare
@@ -54,6 +55,7 @@ define Build/Prepare
 	cp -r providers $(PKG_BUILD_DIR)
 	cp -r scripts $(PKG_BUILD_DIR)
 	cp -r src/Makefile.build $(PKG_BUILD_DIR)/Makefile
+	cp -r ui $(PKG_BUILD_DIR)
 	$(Build/Patch)
 endef
 
@@ -63,6 +65,11 @@ endef
 # upx --brute $(PKG_BUILD_DIR)/bitmaskd
 # upx==3.93 is tested, higher versions seem to inutilize the binary https://github.com/upx/upx/issues/87
 
+
+define Package/bitmask-vpn/config
+	source "$(SOURCE)/Config.in"
+endef
+
 define Package/bitmask-vpn/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/etc/bitmask/scripts
@@ -71,6 +78,10 @@ define Package/bitmask-vpn/install
 	$(INSTALL_DIR) $(1)/etc/bitmask
 	$(CP) -r $(PKG_BUILD_DIR)/providers $(1)/etc/bitmask
 	$(CP) -r $(PKG_BUILD_DIR)/scripts $(1)/etc/bitmask
+ifeq ($(CONFIG_BITMASKVPN_WEBUI),y)
+	$(INSTALL_DIR) $(1)/www/bitmask
+	$(CP) -r $(PKG_BUILD_DIR)/ui/* $(1)/www/bitmask/
+endif
 endef
 
 $(eval $(call BuildPackage,bitmask-vpn))

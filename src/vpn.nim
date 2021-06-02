@@ -15,42 +15,15 @@ import banner
 import checks
 import config
 import curl
-import util
+import gateway
 import hardware
 import logs
 import management
 import metrics
+import util
 
 const pollPeriod = 500
 
-type
-  Transport = object
-    `type`*: string
-    protocols*: seq[string]
-    ports*: seq[string]
-
-  Capabilities = object
-    adblock: bool
-    filter_dns: bool
-    limited: bool
-    user_ips: bool
-    transport*: seq[Transport]
-
-  Gateway* = object
-    location*: string
-    ip_address*: string
-    host: string
-    capabilities*: Capabilities
-
-  GatewayV1 * = object
-    ip_address*: string
-    host: string
-
-  Location* = object
-    country_code: string
-    hemisphere: char
-    name: string
-    timezone: string
 
 type
   OpenVpnState {.pure.} = enum
@@ -77,10 +50,11 @@ type
 var vpnLock*: Lock
 initLock(vpnLock)
 var openvpnProc {.threadvar.}: Process
-var gateway {.threadvar.}: Gateway
+var gw {.threadvar.}: Gateway
 
 proc startService(): void =
-  # TODO check if running, then restart instead
+  # TODO check if running, then restart?
+  discard execProcess("/etc/init.d/openvpn reload")
   discard execProcess("/etc/init.d/openvpn start")
 
 proc stopService(): void =
@@ -154,24 +128,6 @@ connect-retry 2
 connect-retry-max 10
 persist-tun"""
 
-proc getGateways(url: string): seq[Gateway] =
-  let j = getJson(url)
-  var eipGateways = newSeq[Gateway](0)
-  let gws = j{"gateways"}
-  try:
-    for gw in gws:
-      eipGateways.add(to(gw, Gateway))
-  except:
-    try:
-      for gw in gws:
-        # calyx gives no locations
-        let g = to(gw, GatewayV1)
-        let gw2 = Gateway(host: g.host, ip_address: g.ip_address)
-        eipGateways.add(gw2)
-    except:
-      warn("failed to parse gateway!!")
-      echo getCurrentExceptionMsg()
-  result = eipGateways
 
 proc listLocations(): seq[string] =
    var l = newSeq[string]()
@@ -184,8 +140,8 @@ proc listLocations(): seq[string] =
    return l
 
 proc getAutoGateway(): Gateway {.gcsafe.} =
-  if gateway.host != "":
-    return gateway
+  if gw.host != "":
+    return gw 
 
   let eipUrl = getEipUrl()
   let menshenUrl = getMenshenUrl()
@@ -194,6 +150,9 @@ proc getAutoGateway(): Gateway {.gcsafe.} =
       j    = getJson(menshenUrl)
       city = j["city"].getStr()
       cc   = j["cc"].getStr()
+      #ip   = j["ip"].getStr()
+      #lat  = j["lat"].getStr()
+      #lon  = j["lon"].getStr()
 
     info("Your city appears to be $# ($#)" % [city, cc])
     let best = j["gateways"][0].getStr()
@@ -219,7 +178,7 @@ proc manualGateway(gws: seq[Gateway], preferred: string): Gateway =
         return gw
     raise newException(ValueError, "Gateway choice not found")
 
-proc pickGatewayByLocation*(gw: string): vpn.Gateway {.gcsafe.} =
+proc pickGatewayByLocation*(gw: string): Gateway {.gcsafe.} =
   let eipUrl = getEipUrl()
   let gws = getGateways(eipUrl)
   return manualGateway(gws, gw)
@@ -255,17 +214,18 @@ proc getCert(certUrl, caUrl: string) {.async.} =
 
 proc doInitVPN() =
   getCACrt()
-  gateway = getAutoGateway()
+  gw = getAutoGateway()
   # TODO we can fetch certs here already
   ledStatusOff()
   debug("Init done")
-
 
 proc workerVPN*(proxy: ThreadProxy) {.thread.} =
   var mng: Manager
   var eipSt: EIPState
   var vpnSt: OpenVpnState
   var locations: seq[string]
+  var selectedLocation: string
+  var gws: seq[Gateway]
   var metrics: MetricsRef
   var timers: bool
   var count = 0
@@ -337,11 +297,17 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
     let caUrl = getCaUrl()
     waitFor getCert(certUrl, caUrl)
     var gw: Gateway
+
+    if selectedLocation != "":
+      # parseConfig resets the location, we should write it to file
+      setLocation(selectedLocation)
+
     if isAuto():
       gw = getAutoGateway()
       info("Using auto gateway: " & $gw.host)
     else:
       let loc = getLocation()
+      debug("Current location: " & loc)
       gw = pickGatewayByLocation(loc)
       info("Using preferred location: " & $loc)
       info("Selected gateway: " & $gw.host)
@@ -386,22 +352,33 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
       debug("Switch is on, starting...")
       addTimer(500, true, doStart)
 
-  proxy.onData "start":
+  proc doSetLocation(fd: AsyncFD): bool {.gcsafe.} =
+    setLocation(selectedLocation)
+
+  proxy.onData STATUS:
+    return %* {STATUS: $eipSt}
+
+  proxy.onData START:
     if not canStartVpn():
-      return %* {"start": "error"}
+      return %* {START: "error"}
     addTimer(16, true, doStart)
-    return %* {"start": "ok"}
+    return %* {START: "ok"}
 
-  proxy.onData "stop":
+  proxy.onData STOP:
     addTimer(16, true, doStop)
-    return %* {"stop": "ok"}
+    return %* {STOP: "ok"}
 
-  proxy.onData "status":
-    echo "vpn: " & $vpnSt
-    return %* {"status": $eipSt}
+  proxy.onData GWLOCATIONS:
+    return %* {GWLOCATIONS: $locations}
 
-  proxy.onData "gwlocations":
-    return %* {"gwlocations": $locations}
+  proxy.onData GWLOCATIONSJSON:
+    return  %* {GWLOCATIONSJSON: $(%* gws)}
+
+  proxy.onData LOCATIONSET:
+    let loc = data[0]
+    selectedLocation = loc.getStr()
+    addTimer(16, true, doSetLocation)
+    return %* {LOCATIONSET: "ok"}
 
   mng = dummyManager()
   if not checkForManagement():
@@ -415,5 +392,6 @@ proc workerVPN*(proxy: ThreadProxy) {.thread.} =
   doInitVPN()
   locations = listLocations()
   maybeStartVPN()
+  gws = getGateways(getEipUrl())
   waitFor proxy.poll(interval=200)
   debug("Exiting event loop")

@@ -4,21 +4,25 @@ import sugar
 
 import threadproxy
 
-import logs
+import config
 import vpn
-
 
 randomize()
 
-var hasWorker = false
+const
+  MAIN = "main"
+  WORKER = "worker_vpn"
 
 type
   Cmd = object
    id: int
    cmd: string
+   args: string
    resp: string
 
   CmdRef* = ref Cmd
+
+var hasWorker = false
 
 proc getChannel(): ptr Channel[CmdRef] =
   var channel = cast[ptr Channel[CmdRef]](
@@ -71,14 +75,17 @@ proc getResponse*(cmdStr: string): Future[string] {.async.} =
       # not ours, return to the queue
       callSoon(() => sendResponse(resp))
 
-const
-  MAIN = "main"
-  WORKER = "worker_vpn"
-  COUNT* = "count"
-  START* = "start"
-  STOP* = "stop"
-  STATUS* = "status"
-  GWLOCATIONS* = "gwlocations"
+proc getResponseWithArg*(cmdStr, arg: string): Future[string] {.async.} =
+  let cmd = createCommand(cmdStr)
+  cmd.args = arg
+  retryUntilSent(cmd, cmdChan[])
+  waitFor sleepAsync(100)
+  for resp in getResponseIterator():
+    if resp.id == cmd.id:
+      return resp.resp
+    if resp.id != 0:
+      # not ours, return to the queue
+      callSoon(() => sendResponse(resp))
 
 var workerLock*: Lock
 initLock(workerLock)
@@ -95,20 +102,24 @@ proc registerCommandDispatcher*() =
 
     proc processResponse(action: string, cmd: CmdRef) =
       try:
-        let data = waitFor proxy.ask(WORKER, action)
+        let data = waitFor proxy.ask(WORKER, action, %[cmd.args,])
         cmd.resp = data[action].getStr()
         callSoon(() => sendResponse(cmd))
       except:
-         warn("BUG empty data when parsing command")
-  
+        # XXX this is a workaround to getting empty data from the proxy, but we
+        # need to send an empty response because retrying the proxy calls lead
+        # us to a httpx (fatal) error cmd.resp = "".
+        # right now we can assume that only status responses will fail from time to time,
+        # and that's not critical.
+        cmd.resp = ""
+        callSoon(() => sendResponse(cmd))
+
     # doParseCommands is a callback
-    proc doParseCommands(fd: AsyncFD): bool {.gcsafe.} =
+    proc doParseCommands(fd: AsyncFD): bool {.gcsafe.}  =
       let cmd = getCommandFromQueue()
       case cmd.cmd
       of "":
          return
-      of COUNT:
-        processResponse(COUNT, cmd)
       of START:
         processResponse(START, cmd)
       of STOP:
@@ -117,6 +128,10 @@ proc registerCommandDispatcher*() =
         processResponse(STATUS, cmd)
       of GWLOCATIONS:
         processResponse(GWLOCATIONS, cmd)
+      of GWLOCATIONSJSON:
+        processResponse(GWLOCATIONSJSON, cmd)
+      of LOCATIONSET:
+        processResponse(LOCATIONSET, cmd)
       else:
         return
     addTimer(200, false, doParseCommands)

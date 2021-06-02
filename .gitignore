@@ -2,3 +2,4 @@ bitmask-vpn
 bitmaskd
 *.swp
 *.swo
+src/uiserver
